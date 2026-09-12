@@ -40,29 +40,14 @@ def setup_navigation():
 # Menu Lateral (Sidebar)
 def render_sidebar():
     if st.session_state["authenticated"]:
-        ok="""
+        
         with st.sidebar:
             st.title("⚙️ Sistema Financeiro")
-            st.divider()
+            user_name = st.session_state["user"].get("nome", "Usuário")
+            st.caption(f"👤 **{user_name}**")
             if st.button("Sair / Logout", use_container_width=True, type="secondary"):
                 APIClient.logout()
-                st.rerun()"""
-
-        with st.sidebar:
-            # hack para colocar usuario acima e navegacao abaixo no sidebar
-            st.html("<style>div[data-testid=\"stSidebarNav\"]{position:relative; top:150px;}/style>")
-            st.html("<style>div[data-testid=\"stSidebarUserContent\"]{position:relative; top:-200px;}/style>")
-
-            st.header("⚙️ Sistema Financeiro")
-            col = st.columns([3, 2])
-            with col[0]:
-                user_name = st.session_state["user"].get("nome", "Usuário")
-                st.caption(f"👤 **{user_name}**")
-            with col[1]:
-                if st.button("Sair", use_container_width=True, type="secondary"):
-                    APIClient.logout()
-                    st.rerun()
-            st.divider()
+                st.rerun()
 
 # Execução da Aplicação
 def main():
