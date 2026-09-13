@@ -1,69 +1,136 @@
-# CONTAS A PAGAR
 
-elenque as principais funcionalidade de um app simples de contas a pagar. deve permitir agendar os pagamentos, classificar conforme um plano de contas, indicar de qual conta corrente será pago, emitir uma lista de contas em aberto, emitir um extrato por conta corrente, registrar transferencias entre contas e permitir fazer conciliação do que foi pago 
+🗄️🛠️🎯
 
-As principais funcionalidades para um aplicativo simples e eficiente de **Contas a Pagar** e **Gestão Financeira**:
+----------------------------------------------------
+----------------------------------------------------
 
-### 1. Gestão e Agendamento de Títulos
-
-* **Cadastro de Contas a Pagar:** Registro de lançamentos com data de emissão, data de vencimento, valor, fornecedor/favorecido, número do documento/nota e descrição.
-* **Agendamento de Pagamentos:** Programação de pagamentos futuros (únicos, recorrentes ou parcelados) com alertas ou notificações de vencimentos próximos e contas em atraso.
-* **Anexo de Comprovantes/Documentos:** Opção de anexar boletos, PDFs ou fotos de recibos diretamente ao lançamento.
-
----
-
-### 2. Classificação Financeira (Plano de Contas)
-
-* **Estruturação por Categorias e Subcategorias:** Organização das despesas conforme o plano de contas (ex.: *Despesas Operacionais > Aluguel*, *Fornecedores > Matéria-Prima*, *Pessoal > Salários*).
-* **Atribuição de Centro de Custos:** Identificação de qual departamento, projeto ou unidade do negócio gerou a despesa.
-
----
-
-### 3. Gestão de Contas Bancárias e Transferências
-
-* **Seleção de Conta Origem:** Indicação explícita da conta corrente, conta digital, caixa físico ou cartão de crédito de onde sairá o recurso para a quitação.
-* **Transferências entre Contas (TED/Pix/Interna):** Registro de movimentações entre contas próprias da empresa/usuário, garantindo a atualização exata dos saldos sem duplicar receitas ou despesas no DRE/relatórios.
-
----
-
-### 4. Controle e Conciliação Financeira
-
-* **Baixa de Pagamentos:** Registro da data efetiva do pagamento, valor pago (aplicando juros, multas ou descontos) e meio utilizado (Pix, boleto, cartão, débito automático).
-* **Conciliação Bancária:**
-* **Manual:** Mapeamento e marcação individual dos lançamentos do app em relação ao extrato bancário.
-* **Importação (OFX/CSV):** Leitura de arquivo de extrato do banco com cruzamento automático (matching) entre o extrato e os títulos quitados no app.
+### O que já está implementado e funcionando:
+- Frontend
+  - Estrutura de telas (`app.py`) e navegação (navigation) 
+  - Cliente de API no Streamlit (`api_client.py`, login() e logout())
+  - Autenticação do usuário (`login.py`)
+- Backend
+  - Módulo de autenticação JWT
+  - Criação de usuário `admin` no startup
 
 
+### TODO:
 
----
-
-### 5. Relatórios e Extratos
-
-* **Relatório de Contas em Aberto:** Listagem detalhada de obrigações a vencer e vencidas (aging list), filtrável por período, fornecedor ou categoria.
-* **Extrato por Conta Corrente:** Histórico de entradas, saídas, transferências e saldo acumulado linha a linha de uma conta específica em um determinado período.
-* **Fluxo de Caixa Projetado:** Visão consolidada das saídas previstas versus entradas (caso integrado ao Contas a Receber) para evitar saldo negativo nas contas.
-
----
-
-
-## Passos
+- desenvolver o arquivo `backend/routers/titulos.py` (CRUD completo de Contas a Pagar) 
+- interface correspondente `frontend/views/titulos.py` (tabela interativa e baixa de títulos).
 
 1. **Modelagem do Banco de Dados:** Essencial para garantir integridade.
 Estruture as tabelas principais: `ContasBancarias`, `PlanoDeContas`, `Fornecedores`, `Lancamentos` (Contas a Pagar), `Transferencias` e `Conciliacoes`.
 
+- Mapeamento relacional completo no SQLAlchemy (`models.py`).
 
 2. **Fluxo de Baixa e Movimentação:** Automação do saldo.
 Ao dar baixa em um título a pagar, garanta que o sistema debite automaticamente o valor do saldo da `ContaBancaria` selecionada.
 
-
 3. **Motor de Conciliação:** Validação dos saldos.
 Crie uma regra de correspondência por data, valor e conta para facilitar a conferência do extrato do banco com as baixas do sistema.
 
----
+**Fase 1: Infraestrutura de Dados e Autenticação:** - Estrutura de dados, autenticação e ambiente.
 
-Aqui está o modelo relacional completo para o sistema de Contas a Pagar e Gestão Bancária, estruturado para garantir **integridade referencial**, **rastreabilidade** e **precisão de saldos**.
+1. **Estrutura do Projeto:** Configurar repositório com diretórios divididos em `/backend` (FastAPI, SQLAlchemy, Schemas) e `/frontend` (Streamlit).
+2. **Modelos SQLAlchemy & Migrações:** Criar a tabela de `usuarios` (`id`, `email`, `senha_hash`, `nome`, `ativo`) integrada aos modelos existentes (`plano_contas`, `contas_bancarias`, `titulos_pagar`, `movimentacoes_conta`, `conciliacoes`).
+3. **Endpoints de Autenticação:**
+    * `POST /api/v1/auth/token`: Valida credenciais e retorna o token `access_token` JWT.
+    * `GET /api/v1/auth/me`: Retorna os dados do usuário autenticado.
+4. **Camada de Login no Streamlit:** Criar tela de login que armazena o token JWT no `st.session_state` e envia o header `Authorization: Bearer <token>` em todas as chamadas HTTP para a FastAPI via `requests`/`httpx`.
 
----
+
+**Fase 2: Gestão Cadastral e Contas a Pagar:** - Cadastros base e lançamento de obrigações.
+
+1. **Endpoints de Cadastros (CRUDs):**
+    * Endpoints para gestão de **Plano de Contas**, **Contas Bancárias** e **Fornecedores**.
+2. **Endpoints do Contas a Pagar:**
+    * `POST /api/v1/titulos`: Cadastro de novos títulos/agendamentos.
+    * `GET /api/v1/titulos`: Listagem com filtros por período, fornecedor, status e categoria.
+    * `POST /api/v1/titulos/{id}/baixa`: Baixa manual com suporte a juros, descontos e pagamentos parciais.
+3. **Interfaces Streamlit:**
+    * Form de cadastro de obrigações com seleção de fornecedor e plano de contas.
+    * Tabela interativa (`st.dataframe` / `st.data_editor`) listando contas em aberto com botão de baixa manual.
+
+
+**Fase 3: Gestão de Caixa e Extrato:** - Movimentações de conta e transferências.
+
+1. **Endpoints de Movimentação e Transferências:**
+    * `GET /api/v1/movimentacoes/extrato`: Retorna o extrato da conta com cálculo do saldo acumulado linha a linha.
+    * `POST /api/v1/transferencias`: Efetua a transferência criando automaticamente as movimentações de `SAIDA` (origem) e `ENTRADA` (destino).
+2. **Interfaces Streamlit:**
+    * Tela de **Extrato Bancário** com seleção de conta, filtro por data e exibição de saldo atualizado.
+    * Formulário de **Transferência entre Contas Propria**.
+
+
+**Fase 4: Motor de Conciliação Bancária:** - Upload OFX e conciliação por score.
+
+1. **Endpoints de Conciliação:**
+    * `POST /api/v1/conciliacao/upload-ofx`: Recebe o arquivo `.ofx`, invoca o *matcher* Python e devolve a lista classificada por nível de confiança (*Exact*, *Flex*, *Parcial*, *Duplicado*).
+    * `POST /api/v1/conciliacao/confirmar`: Efetiva o vínculo no banco de dados e atualiza os status dos títulos.
+2. **Interface Streamlit:**
+    * Tela dedicada ao upload de extrato OFX.
+    * Exibição das transações do banco lado a lado com os lançamentos sugeridos do sistema para confirmação em lote ou individual com 1 clique.
+
+
+**Fase 5: Dashboard, Aging e Migração de Banco:** - Relatórios, visão financeira e deploy.
+
+1. **Endpoints Analíticos:**
+    * `GET /api/v1/relatorios/aging`: Dados para o relatório de Aging List (contas em atraso por faixas de dias).
+    * `GET /api/v1/relatorios/dre-resumido`: Dados consolidados por plano de contas.
+2. **Dashboards no Streamlit:**
+    * Visão executiva com indicadores de total a pagar no dia, valores vencidos, gráfico de aging e saldo consolidado das contas.
+3. **Migração para Produção:**
+    * Alterar a variável de ambiente `DATABASE_URL` no FastAPI para apontar para o banco de dados relacional remoto (ex: PostgreSQL) sem alterar nenhuma regra de código.
+
+- Criar o arquivo docker-compose.yml para subir FastAPI, Streamlit e SQLite/PostgreSQL
+- Em produção, ajustar leitura de variáveis de ambiente via pydantic-settings
+
+
+
+
+ESTRUTURA DO PROJETO
+
+financing/
+├── .gitignore
+├── README.md
+├── docker-compose.yml             # (Opcional) Sobe o banco, FastAPI e Streamlit juntos
+│
+├── backend/                       # API FastAPI + Banco de Dados
+│   ├── .env                       # Variáveis de ambiente locais (DATABASE_URL, SECRET_KEY)
+│   ├── requirements.txt           # Dependências do backend (fastapi, sqlalchemy, passlib, etc)
+│   ├── main.py                    # Inicializa o FastAPI, inclui os roteadores e cria um usuário inicial padrão (Seed) se o banco estiver vazio
+│   ├── database.py                # Configuração do SQLAlchemy Engine e AsyncSession
+│   ├── models.py                  # Modelos relacionais (ORM)
+│   ├── schemas.py                 # Validações Pydantic (Request/Response)
+│   ├── security.py                # Hash de senhas (bcrypt), validação de hash rotinas de criação/decodificação de tokens JWT
+│   └── routers/                   # Módulos de endpoints por domínio
+│       └── auth.py                # Endpoints /auth/token, /auth/register e /auth/me
+│       ├── titulos.py
+│       └── conciliacao.py
+│
+└── frontend/                      # Aplicação Streamlit
+    ├── .env                       # Variáveis de ambiente (API_BASE_URL)
+    ├── requirements.txt           # Dependências do frontend (streamlit, httpx)
+    ├── app.py                     # Ponto de entrada do Streamlit (navegação e sidebar; roteamento)
+    ├── api_client.py              # Centraliza a comunicação com o Backend; ciente HTTP (httpx); header Bearer <token>
+    └── views/                     # Páginas/Telas do sistema
+        ├── login.py               # Tela de login
+        ├── dashboard.py           # Visão geral
+        ├── titulos.py             # Contas a pagar
+        └── conciliacao.py
+
+Vamos trabalhar com um único Ambiente Virtuai na raiz, instalando todas as bibliotecas necessárias para rodar tanto o FastAPI quanto o Streamlit.
+- Vantagem: Facilita o desenvolvimento e navegação na IDE (VS Code / PyCharm).
+- Desvantagem: a imagem Docker ou o servidor de hospedagem do frontend vai instalar dependências do banco de dados/SQLAlchemy sem necessidade.
+
+
+
+
+<details>
+<summary>MODELAGEM DO BANCO DE DADOS</summary>
+
+Modelo relacional completo estruturado para garantir **integridade referencial**, **rastreabilidade** e **precisão de saldos**.
 
 ### Visão Geral das Entidades
 
@@ -74,8 +141,6 @@ Aqui está o modelo relacional completo para o sistema de Contas a Pagar e Gest�
 5. **`movimentacoes_conta`**: O livro-razão (*ledger*) de todas as saídas, entradas e transferências que impactam o saldo real de uma conta.
 6. **`transferencias`**: Registro das movimentações entre contas próprias (associa duas `movimentacoes_conta`).
 7. **`conciliacoes`**: Registro dos confrontos de extrato bancário (OFX/CSV) com os lançamentos do sistema.
-
----
 
 ### DDL / Estrutura das Tabelas (SQL)
 
@@ -181,133 +246,8 @@ CREATE TABLE conciliacoes (
 
 ```
 
----
+-----
 
-### Principais Regras de Negócio e Relacionamentos
-
-| Funcionalidade | Implementação na Modelagem |
-| --- | --- |
-| **Baixa de Título** | Ao pagar um `titulos_pagar`, cria-se um registro de `SAIDA` em `movimentacoes_conta` associado ao `id_titulo_pagar`. |
-| **Transferência entre Contas** | Cria **dois** registros em `movimentacoes_conta` (uma `SAIDA` na origem e uma `ENTRADA` no destino) unidos por um registro único na tabela `transferencias`. |
-| **Extrato da Conta** | É obtido diretamente ordenando a tabela `movimentacoes_conta` por `data_movimento` para a conta informada. O saldo atual é o `saldo_inicial` da conta mais a soma de `ENTRADA` menos `SAIDA`. |
-| **Conciliação** | Grava o vínculo da movimentação com o registro vindo do arquivo OFX/CSV (usando `fitid_ofx` para evitar duplicidades) e marca `conciliado = TRUE` no movimento. |
-
----
-
-## Escreva as queries SQL essenciais do sistema: cálculo de saldo acumulado linha a linha (extrato), relatório de contas em aberto (aging) e DRE simples por plano de contas.
-
-Aqui estão as **queries SQL essenciais** construídas para o modelo relacional definido anterior.
-
-Elas utilizam funções de janela (*window functions*) do SQL padrão (compatíveis com PostgreSQL, MySQL 8+, SQLite 3.25+ e SQL Server) para garantir eficiência no cálculo do extrato e dos relatórios.
-
----
-
-### 1. Extrato por Conta Corrente com Saldo Acumulado (*Linha a Linha*)
-
-Esta consulta recupera todas as movimentações de uma determinada conta e calcula o **saldo progressivo** a cada linha, considerando o `saldo_inicial` cadastrado na conta bancária.
-
-```sql
-WITH saldo_base AS (
-    -- Busca o saldo inicial da conta bancária escolhida (ex: id_conta = 1)
-    SELECT id, saldo_inicial 
-    FROM contas_bancarias 
-    WHERE id = 1
-)
-SELECT 
-    m.id AS movimento_id,
-    m.data_movimento,
-    m.descricao,
-    m.tipo,
-    m.valor,
-    m.conciliado,
-    -- Calcula a variação líquida do lançamento (Entrada +, Saída -)
-    CASE 
-        WHEN m.tipo = 'ENTRADA' THEN m.valor 
-        ELSE -m.valor 
-    END AS valor_liquido,
-    -- Soma o saldo inicial + a soma acumulada de todas as movimentações até a linha atual
-    sb.saldo_inicial + SUM(
-        CASE 
-            WHEN m.tipo = 'ENTRADA' THEN m.valor 
-            ELSE -m.valor 
-        END
-    ) OVER (
-        PARTITION BY m.id_conta_bancaria 
-        ORDER BY m.data_movimento ASC, m.id ASC
-    ) AS saldo_acumulado
-FROM movimentacoes_conta m
-CROSS JOIN saldo_base sb
-WHERE m.id_conta_bancaria = 1
-  AND m.data_movimento BETWEEN '2026-09-01' AND '2026-09-30'
-ORDER BY m.data_movimento ASC, m.id ASC;
-
-```
-
----
-
-### 2. Relatório de Contas a Pagar em Aberto (*Aging List*)
-
-Gera a listagem de títulos **PENDENTES** e **PARCIAIS**, agrupando os débitos por faixas de atraso (*Aging*) com base na data atual (`CURRENT_DATE`).
-
-```sql
-SELECT 
-    t.id AS titulo_id,
-    f.nome_razao AS fornecedor,
-    p.nome AS categoria_plano_contas,
-    t.numero_documento,
-    t.descricao,
-    t.data_vencimento,
-    (t.valor_original - t.valor_desconto + t.valor_juros_multa - t.valor_pago) AS valor_em_aberto,
-    
-    -- Dias de atraso (valores positivos indicam que já venceu)
-    (CURRENT_DATE - t.data_vencimento) AS dias_atraso,
-    
-    -- Classificação do Aging
-    CASE 
-        WHEN (CURRENT_DATE - t.data_vencimento) <= 0 THEN 'A Vencer'
-        WHEN (CURRENT_DATE - t.data_vencimento) BETWEEN 1 AND 30 THEN '1 a 30 dias'
-        WHEN (CURRENT_DATE - t.data_vencimento) BETWEEN 31 AND 60 THEN '31 a 60 dias'
-        WHEN (CURRENT_DATE - t.data_vencimento) BETWEEN 61 AND 90 THEN '61 a 90 dias'
-        ELSE 'Acima de 90 dias'
-    END AS faixa_aging
-
-FROM titulos_pagar t
-JOIN fornecedores f ON f.id = t.id_fornecedor
-JOIN plano_contas p ON p.id = t.id_plano_contas
-WHERE t.status IN ('PENDENTE', 'PARCIAL')
-ORDER BY t.data_vencimento ASC;
-
-```
-
-#### Visão Sintética do Aging (Resumo do Passivo em Aberto):
-
-Se precisar do valor total devido por faixa de atraso para dashboard/gráfico:
-
-```sql
-SELECT 
-    CASE 
-        WHEN (CURRENT_DATE - t.data_vencimento) <= 0 THEN 'A Vencer'
-        WHEN (CURRENT_DATE - t.data_vencimento) BETWEEN 1 AND 30 THEN '1 a 30 dias'
-        WHEN (CURRENT_DATE - t.data_vencimento) BETWEEN 31 AND 60 THEN '31 a 60 dias'
-        WHEN (CURRENT_DATE - t.data_vencimento) BETWEEN 61 AND 90 THEN '61 a 90 dias'
-        ELSE 'Acima de 90 dias'
-    END AS faixa_aging,
-    COUNT(t.id) AS qtd_titulos,
-    SUM(t.valor_original - t.valor_desconto + t.valor_juros_multa - t.valor_pago) AS total_aberto
-FROM titulos_pagar t
-WHERE t.status IN ('PENDENTE', 'PARCIAL')
-GROUP BY 1
-ORDER BY MIN(t.data_vencimento) ASC;
-
-```
-
----
-
-## TODO: Criar estrutura de persistência no banco via SQLAlchemy
-
-Aqui está a estrutura de persistência completa em **SQLAlchemy 2.0 Async** compatível com o **Python 3.12+**, incluindo os mapeamentos relacionais (**ORM Models**), a **configuração da sessão/Engine**, e um **script de carga inicial (*Seed*)** para testes.
-
----
 
 ### 1. Configuração do Banco e Conexão (`database.py`)
 
@@ -578,6 +518,121 @@ if __name__ == "__main__":
 
 ```
 
+</details>
+
+
+--------------------
+
+<details>
+<summary>Escreva as queries SQL essenciais do sistema: cálculo de saldo acumulado linha a linha (extrato), relatório de contas em aberto (aging) e DRE simples por plano de contas.</summary>
+
+## Escreva as queries SQL essenciais do sistema: cálculo de saldo acumulado linha a linha (extrato), relatório de contas em aberto (aging) e DRE simples por plano de contas.
+
+Aqui estão as **queries SQL essenciais** construídas para o modelo relacional definido anterior.
+
+Elas utilizam funções de janela (*window functions*) do SQL padrão (compatíveis com PostgreSQL, MySQL 8+, SQLite 3.25+ e SQL Server) para garantir eficiência no cálculo do extrato e dos relatórios.
+
+---
+
+### 1. Extrato por Conta Corrente com Saldo Acumulado (*Linha a Linha*)
+
+Esta consulta recupera todas as movimentações de uma determinada conta e calcula o **saldo progressivo** a cada linha, considerando o `saldo_inicial` cadastrado na conta bancária.
+
+```sql
+WITH saldo_base AS (
+    -- Busca o saldo inicial da conta bancária escolhida (ex: id_conta = 1)
+    SELECT id, saldo_inicial 
+    FROM contas_bancarias 
+    WHERE id = 1
+)
+SELECT 
+    m.id AS movimento_id,
+    m.data_movimento,
+    m.descricao,
+    m.tipo,
+    m.valor,
+    m.conciliado,
+    -- Calcula a variação líquida do lançamento (Entrada +, Saída -)
+    CASE 
+        WHEN m.tipo = 'ENTRADA' THEN m.valor 
+        ELSE -m.valor 
+    END AS valor_liquido,
+    -- Soma o saldo inicial + a soma acumulada de todas as movimentações até a linha atual
+    sb.saldo_inicial + SUM(
+        CASE 
+            WHEN m.tipo = 'ENTRADA' THEN m.valor 
+            ELSE -m.valor 
+        END
+    ) OVER (
+        PARTITION BY m.id_conta_bancaria 
+        ORDER BY m.data_movimento ASC, m.id ASC
+    ) AS saldo_acumulado
+FROM movimentacoes_conta m
+CROSS JOIN saldo_base sb
+WHERE m.id_conta_bancaria = 1
+  AND m.data_movimento BETWEEN '2026-09-01' AND '2026-09-30'
+ORDER BY m.data_movimento ASC, m.id ASC;
+
+```
+
+---
+
+### 2. Relatório de Contas a Pagar em Aberto (*Aging List*)
+
+Gera a listagem de títulos **PENDENTES** e **PARCIAIS**, agrupando os débitos por faixas de atraso (*Aging*) com base na data atual (`CURRENT_DATE`).
+
+```sql
+SELECT 
+    t.id AS titulo_id,
+    f.nome_razao AS fornecedor,
+    p.nome AS categoria_plano_contas,
+    t.numero_documento,
+    t.descricao,
+    t.data_vencimento,
+    (t.valor_original - t.valor_desconto + t.valor_juros_multa - t.valor_pago) AS valor_em_aberto,
+    
+    -- Dias de atraso (valores positivos indicam que já venceu)
+    (CURRENT_DATE - t.data_vencimento) AS dias_atraso,
+    
+    -- Classificação do Aging
+    CASE 
+        WHEN (CURRENT_DATE - t.data_vencimento) <= 0 THEN 'A Vencer'
+        WHEN (CURRENT_DATE - t.data_vencimento) BETWEEN 1 AND 30 THEN '1 a 30 dias'
+        WHEN (CURRENT_DATE - t.data_vencimento) BETWEEN 31 AND 60 THEN '31 a 60 dias'
+        WHEN (CURRENT_DATE - t.data_vencimento) BETWEEN 61 AND 90 THEN '61 a 90 dias'
+        ELSE 'Acima de 90 dias'
+    END AS faixa_aging
+
+FROM titulos_pagar t
+JOIN fornecedores f ON f.id = t.id_fornecedor
+JOIN plano_contas p ON p.id = t.id_plano_contas
+WHERE t.status IN ('PENDENTE', 'PARCIAL')
+ORDER BY t.data_vencimento ASC;
+
+```
+
+#### Visão Sintética do Aging (Resumo do Passivo em Aberto):
+
+Se precisar do valor total devido por faixa de atraso para dashboard/gráfico:
+
+```sql
+SELECT 
+    CASE 
+        WHEN (CURRENT_DATE - t.data_vencimento) <= 0 THEN 'A Vencer'
+        WHEN (CURRENT_DATE - t.data_vencimento) BETWEEN 1 AND 30 THEN '1 a 30 dias'
+        WHEN (CURRENT_DATE - t.data_vencimento) BETWEEN 31 AND 60 THEN '31 a 60 dias'
+        WHEN (CURRENT_DATE - t.data_vencimento) BETWEEN 61 AND 90 THEN '61 a 90 dias'
+        ELSE 'Acima de 90 dias'
+    END AS faixa_aging,
+    COUNT(t.id) AS qtd_titulos,
+    SUM(t.valor_original - t.valor_desconto + t.valor_juros_multa - t.valor_pago) AS total_aberto
+FROM titulos_pagar t
+WHERE t.status IN ('PENDENTE', 'PARCIAL')
+GROUP BY 1
+ORDER BY MIN(t.data_vencimento) ASC;
+
+```
+
 ---
 
 
@@ -624,10 +679,12 @@ ORDER BY p.codigo ASC;
 
 ## TODO: Criar o script de inserção com dados de teste (Seeds SQL)
 
----
+--------------------
+
+<details>
+<summary>Desenhar a arquitetura da rotina de importação de arquivo OFX</summary>
 
 ## Desenhar a arquitetura da rotina de importação de arquivo OFX
-
 Explique a lógica e os passos para processar um arquivo de extrato bancário no formato OFX e realizar o matching automático com os lançamentos.
 
 O processamento de arquivos OFX (*Open Financial Exchange*) para conciliação bancária baseia-se em extrair transações estruturadas e aplicar algoritmos de divergência (data, valor e identificador) para vinculá-las aos lançamentos do sistema.
@@ -1723,183 +1780,3 @@ POST /api/v1/conciliacao/confirmar
 
 
 
-======================================================
-
-
-# IMPLEMENTAÇÃO
-
-## DEFINIÇÕES
-
-### Requisitos funcionais
-
-### Requisitos não funcionais
-
-- devera ser desenvolvido em python, 
-- front-end em streamlit
-- utilizar fast api para executar todas as transacoes, 
-- armazenamento em banco de dados relacional (durante o desenvolvimento sera utilizado sqlite local e posteriormente migrado para um banco relacional remoto)
-- autenticacao de usuario atraves de login simples
-
---- 
-
-## ARQUITETURA
-
-Aqui está a arquitetura completa e a sequência de implementação ordenada por fases de entrega para o seu aplicativo de **Contas a Pagar e Gestão Bancária**, atendendo a todos os requisitos técnicos estabelecidos.
-
-
-### Visão Geral da Arquitetura
-
-* **Front-end:** Streamlit (UI reativa, formulários, tabelas interativas e dashboards).
-* **Back-end:** FastAPI (Regras de negócio, segurança, endpoints REST async e parse do OFX).
-* **Camada de Dados:** SQLAlchemy 2.0 Async (SQLite em desenvolvimento com abstração para migração transparente para PostgreSQL/MySQL em produção).
-* **Autenticação:** JWT (*JSON Web Tokens*) com *OAuth2 Password Flow* e hash de senha via `passlib[bcrypt]`.
-
-
-### Fases do desenvolvimento
-
-**Fase 1: Infraestrutura de Dados e Autenticação:** - Estrutura de dados, autenticação e ambiente.
-
-1. **Estrutura do Projeto:** Configurar repositório com diretórios divididos em `/backend` (FastAPI, SQLAlchemy, Schemas) e `/frontend` (Streamlit).
-2. **Modelos SQLAlchemy & Migrações:** Criar a tabela de `usuarios` (`id`, `email`, `senha_hash`, `nome`, `ativo`) integrada aos modelos existentes (`plano_contas`, `contas_bancarias`, `titulos_pagar`, `movimentacoes_conta`, `conciliacoes`).
-3. **Endpoints de Autenticação:**
-    * `POST /api/v1/auth/token`: Valida credenciais e retorna o token `access_token` JWT.
-    * `GET /api/v1/auth/me`: Retorna os dados do usuário autenticado.
-4. **Camada de Login no Streamlit:** Criar tela de login que armazena o token JWT no `st.session_state` e envia o header `Authorization: Bearer <token>` em todas as chamadas HTTP para a FastAPI via `requests`/`httpx`.
-
-
-**Fase 2: Gestão Cadastral e Contas a Pagar:** - Cadastros base e lançamento de obrigações.
-
-1. **Endpoints de Cadastros (CRUDs):**
-    * Endpoints para gestão de **Plano de Contas**, **Contas Bancárias** e **Fornecedores**.
-2. **Endpoints do Contas a Pagar:**
-    * `POST /api/v1/titulos`: Cadastro de novos títulos/agendamentos.
-    * `GET /api/v1/titulos`: Listagem com filtros por período, fornecedor, status e categoria.
-    * `POST /api/v1/titulos/{id}/baixa`: Baixa manual com suporte a juros, descontos e pagamentos parciais.
-3. **Interfaces Streamlit:**
-    * Form de cadastro de obrigações com seleção de fornecedor e plano de contas.
-    * Tabela interativa (`st.dataframe` / `st.data_editor`) listando contas em aberto com botão de baixa manual.
-
-
-**Fase 3: Gestão de Caixa e Extrato:** - Movimentações de conta e transferências.
-
-1. **Endpoints de Movimentação e Transferências:**
-    * `GET /api/v1/movimentacoes/extrato`: Retorna o extrato da conta com cálculo do saldo acumulado linha a linha.
-    * `POST /api/v1/transferencias`: Efetua a transferência criando automaticamente as movimentações de `SAIDA` (origem) e `ENTRADA` (destino).
-2. **Interfaces Streamlit:**
-    * Tela de **Extrato Bancário** com seleção de conta, filtro por data e exibição de saldo atualizado.
-    * Formulário de **Transferência entre Contas Propria**.
-
-
-**Fase 4: Motor de Conciliação Bancária:** - Upload OFX e conciliação por score.
-
-1. **Endpoints de Conciliação:**
-    * `POST /api/v1/conciliacao/upload-ofx`: Recebe o arquivo `.ofx`, invoca o *matcher* Python e devolve a lista classificada por nível de confiança (*Exact*, *Flex*, *Parcial*, *Duplicado*).
-    * `POST /api/v1/conciliacao/confirmar`: Efetiva o vínculo no banco de dados e atualiza os status dos títulos.
-2. **Interface Streamlit:**
-    * Tela dedicada ao upload de extrato OFX.
-    * Exibição das transações do banco lado a lado com os lançamentos sugeridos do sistema para confirmação em lote ou individual com 1 clique.
-
-
-**Fase 5: Dashboard, Aging e Migração de Banco:** - Relatórios, visão financeira e deploy.
-
-1. **Endpoints Analíticos:**
-    * `GET /api/v1/relatorios/aging`: Dados para o relatório de Aging List (contas em atraso por faixas de dias).
-    * `GET /api/v1/relatorios/dre-resumido`: Dados consolidados por plano de contas.
-2. **Dashboards no Streamlit:**
-    * Visão executiva com indicadores de total a pagar no dia, valores vencidos, gráfico de aging e saldo consolidado das contas.
-3. **Migração para Produção:**
-    * Alterar a variável de ambiente `DATABASE_URL` no FastAPI para apontar para o banco de dados relacional remoto (ex: PostgreSQL) sem alterar nenhuma regra de código.
-
----
-
-# TODO: 
-Construir a interface de Contas a Pagar no Streamlit
-Construir a tela de Contas a Pagar no Streamlit
-Criar os endpoints CRUD de Contas a Pagar no FastAPI
-Criar o arquivo docker-compose.yml para subir FastAPI, Streamlit e SQLite/PostgreSQL
-Em produção, ajustar leitura de variáveis de ambiente via pydantic-settings
-
----
-
-
-ESTRUTURA DO PROJETO
-
-financing/
-├── .gitignore
-├── README.md
-├── docker-compose.yml             # (Opcional) Sobe o banco, FastAPI e Streamlit juntos
-│
-├── backend/                       # API FastAPI + Banco de Dados
-│   ├── .env                       # Variáveis de ambiente locais (DATABASE_URL, SECRET_KEY)
-│   ├── requirements.txt           # Dependências do backend (fastapi, sqlalchemy, passlib, etc)
-│   ├── main.py                    # Inicializa o FastAPI, inclui os roteadores e cria um usuário inicial padrão (Seed) se o banco estiver vazio
-│   ├── database.py                # Configuração do SQLAlchemy Engine e AsyncSession
-│   ├── models.py                  # Modelos relacionais (ORM)
-│   ├── schemas.py                 # Validações Pydantic (Request/Response)
-│   ├── security.py                # Hash de senhas (bcrypt), validação de hash rotinas de criação/decodificação de tokens JWT
-│   └── routers/                   # Módulos de endpoints por domínio
-│       └── auth.py                # Endpoints /auth/token, /auth/register e /auth/me
-│       ├── titulos.py
-│       └── conciliacao.py
-│
-└── frontend/                      # Aplicação Streamlit
-    ├── .env                       # Variáveis de ambiente (API_BASE_URL)
-    ├── requirements.txt           # Dependências do frontend (streamlit, httpx)
-    ├── app.py                     # Ponto de entrada do Streamlit (navegação e sidebar; roteamento)
-    ├── api_client.py              # Centraliza a comunicação com o Backend; ciente HTTP (httpx); header Bearer <token>
-    └── views/                     # Páginas/Telas do sistema
-        ├── login.py               # Tela de login
-        ├── dashboard.py           # Visão geral
-        ├── titulos.py             # Contas a pagar
-        └── conciliacao.py
-
-Vamos trabalhar com um único Ambiente Virtuai na raiz, instalando todas as bibliotecas necessárias para rodar tanto o FastAPI quanto o Streamlit.
-- Vantagem: Facilita o desenvolvimento e navegação na IDE (VS Code / PyCharm).
-- Desvantagem: a imagem Docker ou o servidor de hospedagem do frontend vai instalar dependências do banco de dados/SQLAlchemy sem necessidade.
-
-
----
-
-
-TO RUN
-
-```bash
-# Na raiz do projeto (financing/)
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-# source venv/bin/activate
-
-# Instale os pacotes necessários
-pip install fastapi "uvicorn[standard]" sqlalchemy aiosqlite pydantic pyjwt "passlib[bcrypt]" python-multipart httpx streamlit
-#pip install -r frontend/requirements.txt
-#pip install -r backend/requirements.txt
-```
-
-backend - terminal 1: Navegue até a pasta do backend ou rode via caminho relativo
-- será criado o banco SQLite local (contas_pagar.db)
-- será criado um usuário inicial admin@admin.com com a senha admin123
-- testar a documentação interativa da API em: http://localhost:8000/docs
-```bash
-cd backend
-uvicorn main:app --reload --port 8000
-```
-
-frontend - terminal2: Navegue até a pasta do frontend e execute ou indique o app
-```bash
-cd frontend
-streamlit run app.py
-# streamlit run frontend/app.py
-```
-
-Testando o Fluxo Completo
-- Acessar o Streamlit: O navegador abrirá automaticamente em http://localhost:8501
-- Realizar o Login: Informe as credenciais iniciais (admin@admin.com/admin123)
-- Autenticação e Navegação: O cliente HTTP solicitará o token JWT ao backend, salvará o cabeçalho no st.session_state e redirecionará para o Dashboard
-
----
-
-
-Autenticação: 
-- será executada pelo backend
-- utiliza OAuth2 com Password Flow, tokens JWT (assinados com algoritmos simétricos) e hashing de senhas seguro
-- biblioteca nativa pwdlib (com suporte a argon2 ou bcrypt) ou passlib, combinada com pyjwt.

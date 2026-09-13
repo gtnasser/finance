@@ -1,2 +1,12 @@
 streamlit>=1.63.0
 htppx>=0.28.1
+fastapi
+uvicorn[standard]
+sqlalchemy
+aiosqlite
+pydantic
+pyjwt
+passlib[bcrypt]
+python-multipart
+httpx streamlit
+
