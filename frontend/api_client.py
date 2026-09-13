@@ -76,15 +76,16 @@ class APIClient:
         response = self._request("POST", "/auth/token", data=data, headers=headers)
         
         if response.status_code == 200:
-            token_data = response.json()
             
             # Grava o token no cofre da sessão do Streamlit
+            token_data = response.json()
             st.session_state["token"] = token_data.get("access_token")
             
             # Busca e armazena os dados do usuário autenticado (nome, perfil, etc)
             user_response = self._request("GET", "/auth/me")
             if user_response.status_code == 200:
                 st.session_state["user"] = user_response.json()
+                st.session_state["authenticated"] = True
                 logger.info(f"👤 Usuário conectado: {username}")
                 
             return token_data
