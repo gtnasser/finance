@@ -98,6 +98,7 @@ O projeto adota uma arquitetura **MVP (Minimum Viable Product)** robusta, bem es
 
 ### 📂 Estrutura de Diretórios Atual
 
+```text
 financing/
 ├── .gitignore            # Ignora venv, *.db, .env, caches
 ├── .env.example          # Modelo de variáveis de ambiente (SECRET_KEY, DATABASE_URL)
@@ -117,6 +118,7 @@ financing/
         ├── login.py      # Tela de autenticação
         ├── dashboard.py  # Visão geral de métricas
         └── titulos.py    # Gestão de Contas a Pagar (CRUD)
+```
 
 -----
 
