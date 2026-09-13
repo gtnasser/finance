@@ -18,6 +18,7 @@ Objetivo: desenvolver um app simples de **Contas a Pagar/Gestão Financeira**
 - armazenamento em banco de dados relacional remoto (SQLite em dev local, Postgres remoto em em prod)
 - autenticacao de usuario atraves de login simples
 - dimensionar para: 100 transações/dia, 4 usuários simultâneos
+- registro das atividades em log estilo LOGCAT
 
 --- 
 
@@ -95,6 +96,11 @@ O projeto adota uma arquitetura **MVP (Minimum Viable Product)** robusta, bem es
   - **`models.py` (SQLAlchemy):** Define o mapeamento objeto-relacional (ORM) e a estrutura física das tabelas no banco de dados.
   - **`schemas.py` (Pydantic v2):** Define os contratos da API, realizando a validação estrita de entrada (payloads), a serialização de saída e a sanitização de dados sensíveis (impedindo a exposição de campos como `senha_hash`).
   - Essa divisão garante contratos flexíveis de criação, atualização e leitura de dados sem acoplar a interface ao esquema estrutural do banco de dados.
+- **Registro de Atividades em log:**
+  - Rastreabilidade sem poluição: utiliza um padrão profissional de log com rotação e retenção customizáveis, e possibilidade de ativar/desativar/alterar nivel de registro em tempo de execução.
+  - Auditoria de Operações Financeiras: Registra ações críticas (ex: criação de títulos, alteração de saldos, tentativas de login) com carimbo de data/hora (timestamp).
+  - Diagnóstico em Produção: Quando em produção, pode ser lido por outras ferramentas para identificação de falhas e geração de estatísticas.
+
 
 ### 📂 Estrutura de Diretórios Atual
 
@@ -105,6 +111,9 @@ financing/
 ├── requirements.txt      # Dependências do projeto (FastAPI, Streamlit, SQLAlchemy, etc.)
 ├── backend/
 │   ├── database.py       # Engine e AsyncSessionLocal (SQLAlchemy 2.0)
+│   ├── logs/             # Logs exclusivos da API FastAPI
+│   │   └── api.log
+│   ├── logger.py         # Configuração de log do backend
 │   ├── models.py         # Modelos relacionais ORM (Usuario, PlanoContas, TitulosPagar, etc.)
 │   ├── schemas.py        # Validações Pydantic (Token, Request/Response, etc.)
 │   ├── security.py       # Gerenciamento de JWT e validação de hash pwdlib
@@ -114,11 +123,23 @@ financing/
 └── frontend/
     ├── app.py            # Ponto de entrada Streamlit com st.navigation
     ├── api_client.py     # Cliente HTTPX com injeção de Bearer Token
+    ├── logs/             # Logs exclusivos da interface Streamlit
+    │   └── ui.log
+    ├── logger.py         # Configuração de log do frontend
     └── views/
         ├── login.py      # Tela de autenticação
         ├── dashboard.py  # Visão geral de métricas
         └── titulos.py    # Gestão de Contas a Pagar (CRUD)
 ```
+
+
+financing/
+├── backend/
+│   └── main.py
+│
+└── frontend/
+    └── app.py
+
 
 -----
 
@@ -132,7 +153,7 @@ python -m venv venv
 # source venv/bin/activate
 
 # Instale os pacotes necessários
-pip install fastapi "uvicorn[standard]" sqlalchemy aiosqlite pydantic pyjwt "passlib[bcrypt]" python-multipart httpx streamlit pedlib pydantic[email]
+pip install fastapi "uvicorn[standard]" sqlalchemy aiosqlite pydantic pyjwt "passlib[bcrypt]" python-multipart httpx streamlit pedlib pydantic[email] loguru
 #pip install -r frontend/requirements.txt
 #pip install -r backend/requirements.txt
 ```

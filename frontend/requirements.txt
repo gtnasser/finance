@@ -1,12 +1,11 @@
-streamlit>=1.63.0
+streamlit==1.63.0
+fastapi==0.141.1
+uvicorn==0.52.4
+SQLAlchemy==2.0.52
+aiosqlite==0.22.1
+pydantic==2.13.5
+PyJWT==2.14.0
 htppx>=0.28.1
-fastapi
-uvicorn[standard]
-sqlalchemy
-aiosqlite
-pydantic
-pyjwt
-passlib[bcrypt]
-python-multipart
-httpx streamlit
-
+bcrypt==5.0.0
+passlib==1.7.4
+loguru>=0.7.3

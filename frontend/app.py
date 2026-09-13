@@ -1,5 +1,9 @@
 import streamlit as st
+from logger import setup_logger, logger
+
 from api_client import APIClient
+api_client = APIClient()
+
 
 st.set_page_config(
     page_title="Sistema Financeiro",
@@ -43,7 +47,7 @@ def render_sidebar():
         
         with st.sidebar:
             st.title("⚙️ Sistema Financeiro")
-            user_name = st.session_state["user"].get("nome", "Usuário")
+            user_name = st.session_state["user"].get("nome", "Usuário") # st.session_state['user'].get('email')
             st.caption(f"👤 **{user_name}**")
             if st.button("Sair / Logout", use_container_width=True, type="secondary"):
                 APIClient.logout()
@@ -51,6 +55,7 @@ def render_sidebar():
 
 # Execução da Aplicação
 def main():
+#    setup_logger()
     nav = setup_navigation()
     render_sidebar()
     render_header()

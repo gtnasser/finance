@@ -1,5 +1,7 @@
 import streamlit as st
+
 from api_client import APIClient
+api_client = APIClient()
 
 def render_login_page():
 #    st.title("🔑 Acesso ao Sistema")
@@ -19,10 +21,11 @@ def render_login_page():
                     st.warning("Preencha todos os campos.")
                 else:
                     with st.spinner("Autenticando..."):
-                        if APIClient.login(email, senha):
+                        if api_client.login(email, senha):
                             st.success("Login realizado com sucesso!")
                             st.rerun()
                         else:
                             st.error("Credenciais inválidas ou erro no servidor.")
 
 render_login_page()
+
