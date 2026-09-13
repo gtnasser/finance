@@ -8,29 +8,31 @@ from models import Usuario
 from security import get_password_hash
 from routers import auth
 
+# cuistomiza usuario inicial
+ADMIN_INITIAL_USER="Administrador"
+ADMIN_INITIAL_EMAIL="admin@admin.com"
+ADMIN_INITIAL_PASSWORD="admin123"
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Inicializa as tabelas do banco no startup
     await init_db()
-    
+
     # Cria o usuário admin padrão caso não exista
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(Usuario))
         if not result.scalars().first():
             user_admin = Usuario(
-                nome="Administrador",
-                email="admin@admin.com",
-                senha_hash=get_password_hash("admin123")
+                nome=ADMIN_INITIAL_USER,
+                email=ADMIN_INITIAL_EMAIL,
+                senha_hash=get_password_hash(ADMIN_INITIAL_PASSWORD)
             )
             session.add(user_admin)
             await session.commit()
-            print("👤 Usuário inicial criado: admin@admin.com / admin123")
-            
-    yield
 
 # Instância principal acessada pelo Uvicorn
 app = FastAPI(
-    title="API de Gestão Financeira",
+    title="Financing API",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -47,7 +49,10 @@ app.add_middleware(
 # Inclui os roteadores
 app.include_router(auth.router)
 
+# rotas
+
 @app.get("/")
-def root():
-    return {"message": "API Financeira Operacional"}
+async def root():
+    return {"message": "Financing API is running"}
+
 
