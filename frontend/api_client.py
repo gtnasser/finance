@@ -1,7 +1,6 @@
-from logger import logger
-#from typing import Any, Optional
 import httpx
 import streamlit as st
+from logger import logger
 
 API_BASE_URL = "http://localhost:8000"
 API_BASE_PREFIX = "/api/v1"

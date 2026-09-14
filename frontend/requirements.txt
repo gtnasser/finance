@@ -1,11 +1,12 @@
-streamlit==1.63.0
-fastapi==0.141.1
-uvicorn==0.52.4
-SQLAlchemy==2.0.52
-aiosqlite==0.22.1
-pydantic==2.13.5
-PyJWT==2.14.0
-htppx>=0.28.1
-bcrypt==5.0.0
-passlib==1.7.4
-loguru>=0.7.3
+# ----- core -----
+
+# Logging e Manipulação de Dados
+loguru>=0.7.2
+
+# ----- frontend -----
+
+# Interface Gráfica
+streamlit>=1.32.0
+
+# Cliente HTTP para integração com a API
+httpx>=0.27.0

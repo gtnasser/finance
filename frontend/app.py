@@ -1,5 +1,4 @@
 import streamlit as st
-from logger import setup_logger, logger
 
 from api_client import APIClient
 api_client = APIClient()

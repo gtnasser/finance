@@ -1,8 +1,25 @@
+# ----- core -----
+
+# Logging e Manipulação de Dados
+loguru>=0.7.2
+#pandas>=2.2.1
+
+# ----- backend -----
+
+# FastAPI e Servidor
 fastapi>=0.110.0
 uvicorn[standard]>=0.28.0
+
+# Validação e Configuração
+pydantic>=2.6.0
+pydantic[email]
+
+# Banco de Dados e ORM
 sqlalchemy>=2.0.28
 aiosqlite>=0.20.0
-pydantic>=2.6.0
+
+# Segurança e Autenticação
+pwdlib[bcrypt]>=0.2.0
 pyjwt>=2.8.0
-passlib[bcrypt]>=1.7.4
 python-multipart>=0.0.9
+

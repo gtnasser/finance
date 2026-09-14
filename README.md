@@ -150,33 +150,30 @@ financing/
 # Na raiz do projeto (financing/)
 python -m venv venv
 .\venv\Scripts\Activate.ps1
-# source venv/bin/activate
 
 # Instale os pacotes necessários
-pip install fastapi "uvicorn[standard]" sqlalchemy aiosqlite pydantic pyjwt "passlib[bcrypt]" python-multipart httpx streamlit pedlib pydantic[email] loguru
-#pip install -r frontend/requirements.txt
-#pip install -r backend/requirements.txt
+# separados por ambiente caso execute em instancias diferentes
+pip install -r frontend/requirements.txt
+pip install -r backend/requirements.txt
 ```
 
-backend - terminal 1: Navegue até a pasta do backend ou rode via caminho relativo
-- será criado o banco SQLite local (contas_pagar.db)
-- será criado um usuário inicial admin@admin.com com a senha admin123
-- testar a documentação interativa da API em: http://localhost:8000/docs
+backend - terminal 1
 ```bash
+# savegue até a pasta do backend
 cd backend
 uvicorn main:app --reload --port 8000
 ```
 
-frontend - terminal2: Navegue até a pasta do frontend e execute ou indique o app
+frontend - terminal 2
 ```bash
+#N svegue até a pasta do frontend
 cd frontend
 streamlit run app.py
-# streamlit run frontend/app.py
 ```
 
 Testando o Fluxo Completo
 - Acessar o Streamlit: O navegador abrirá automaticamente em http://localhost:8501
-- Realizar o Login: Informe as credenciais iniciais (admin@admin.com/admin123)
-- Autenticação e Navegação: O cliente HTTP solicitará o token JWT ao backend, salvará o cabeçalho no st.session_state e redirecionará para o Dashboard
-
-
+- Será criado automaticamente o banco local com um usuário admin@admin.com, senha admin123
+- Pode testar a documentação interativa da API em: http://localhost:8000/docs
+- Realizar o Login: Informe as credenciais email:admin@admin.com e sernha:admin123
+- Internamente, o cliente HTTP solicitará o token JWT ao backend, salvará o cabeçalho no st.session_state e redirecionará para o Dashboard
