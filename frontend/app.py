@@ -38,6 +38,7 @@ def setup_navigation():
             st.Page("views/dashboard.py", title="Dashboard", icon="📊", default=True),
             st.Page("views/titulos.py", title="Contas a Pagar", icon="📄"),
         ],
+        "Desenvolvimento": [st.Page("views/testes.py", title="Painel de Testes", icon="🧪")],
     })
 
 # Menu Lateral (Sidebar)
@@ -49,7 +50,7 @@ def render_sidebar():
             user_name = st.session_state["user"].get("nome", "Usuário") # st.session_state['user'].get('email')
             st.caption(f"👤 **{user_name}**")
             if st.button("Sair / Logout", use_container_width=True, type="secondary"):
-                APIClient.logout()
+                api_client.logout()
                 st.rerun()
 
 # Execução da Aplicação
