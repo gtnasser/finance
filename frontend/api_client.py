@@ -96,6 +96,7 @@ class APIClient:
         """Limpa credenciais e dados de sessão."""
         st.session_state.pop("token", None)
         st.session_state.pop("user", None)
+        st.session_state["authenticated"] = False
         logger.info("🔒 Sessão encerrada.")
 
     # --- MÉTODOS DE NEGÓCIO (EXEMPLOS...) ---
