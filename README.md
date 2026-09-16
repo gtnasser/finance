@@ -61,7 +61,7 @@ O FINANCING permite agendar pagamentos, classificar despesas por plano de contas
 > Status honesto do que já existe no repositório.
 
 - ✅ **Implementado (MVP)**: autenticação (register, token, me) com proteções de segurança — `/register` bloqueado em produção, rate limiting no login, erro 401 padronizado, logger sem diagnose em produção; modelos `Usuario`/`PlanoContas`/`ContaCorrente`; CRUD de plano de contas e contas correntes (repositories + services + routers); migrações Alembic; seed (admin + plano de contas); logging; CORS.
-- ✅ **Testes (46)**: regras de hierarquia (ciclo), vínculo plano ↔ conta corrente, segurança da autenticação, seed idempotente e CRUD via HTTP.
+- ✅ **Testes (46)**: regras de hierarquia (ciclo), vínculo plano ↔ conta corrente, segurança da autenticação, seed idempotente e CRUD via HTTP (incluindo o contrato de listagem paginada).
 - 🚧 **Em desenvolvimento**: frontend Streamlit — telas de plano de contas e contas correntes.
 - 📋 **Planejado**: títulos a pagar, movimentações, transferências, conciliação (OFX/CSV), relatórios e extratos.
 
@@ -109,6 +109,8 @@ Suíte com **46 testes** cobrindo regras de negócio, segurança e os endpoints 
 | `tests/test_auth_security.py` | 401 padronizado, rate limit, `/register` protegido, `/me`, logger | 13 |
 | `tests/test_seed.py` | Seed idempotente (admin + plano de contas) | 4 |
 | `tests/test_crud_http.py` | Endpoints reais via HTTP: CRUD + autenticação obrigatória | 13 |
+
+> **Contrato das listagens:** `GET /api/v1/plano-contas` e `GET /api/v1/contas` retornam um envelope paginado `{ items, total, limit, offset }` — não uma lista direta. Os testes de CRUD validam `items` e `total`.
 
 Referência completa do escopo: `test.md`.
 

@@ -7,7 +7,15 @@ from database import Base, get_db_session
 from main import app
 import models  # noqa: F401  # registra as tabelas no metadata
 
+from routers.auth import _login_attempts
 
+@pytest_asyncio.fixture(autouse=True)
+def limpar_rate_limit():
+    """O rate limit é global (módulo) — limpa entre testes."""
+    _login_attempts.clear()
+    yield
+    _login_attempts.clear()
+    
 @pytest_asyncio.fixture
 async def session():
     """Sessão async isolada por teste, com schema criado do zero."""
@@ -40,3 +48,4 @@ async def client(session):
         yield ac
 
     app.dependency_overrides.clear()
+

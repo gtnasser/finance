@@ -42,7 +42,10 @@ class BaseRepository(Generic[ModelT]):
         stmt = self._base_stmt()
         for cond in filters or []:
             stmt = stmt.where(cond)
-        stmt = stmt.order_by(order_by if order_by is not None else self.model.id)
+        order_expr = order_by if order_by is not None else (self.model.id,)
+        if not isinstance(order_expr, (tuple, list)):
+            order_expr = (order_expr,)
+        stmt = stmt.order_by(*order_expr)
         stmt = stmt.limit(limit).offset(offset)
         return (await self.session.execute(stmt)).scalars().all()
 

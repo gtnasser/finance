@@ -4,17 +4,7 @@ import pytest
 from config import settings
 from logger import setup_logger
 from models import Usuario
-from routers.auth import _login_attempts
 from security import get_password_hash
-
-
-@pytest.fixture(autouse=True)
-def limpar_rate_limit():
-    """O rate limit é global (módulo) — limpa entre testes."""
-    _login_attempts.clear()
-    yield
-    _login_attempts.clear()
-
 
 async def _criar_usuario(
     session, email="admin@admin.com", senha="admin123", ativo=True

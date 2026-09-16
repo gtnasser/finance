@@ -2,29 +2,13 @@
 
 Documentação da suíte de testes do backend FINANCING. Define o que é testado, como rodar e o que cada arquivo cobre.
 
-## Estrutura final da suíte
-
-```text
-backend/
-├── pytest.ini                          # configuração do pytest
-└── tests/
-    ├── conftest.py                     # fixtures: session + client HTTP
-    ├── test_plano_contas_service.py    # ciclo + vínculo (9 testes)
-    ├── test_conta_corrente_service.py  # vínculo + duplicidade (7 testes)
-    ├── test_auth_security.py           # segurança da API (13 testes)
-    └── test_seed.py                    # seed admin + plano (4 testes)
-```
-
-**Total: 33 testes.**
-
-
 ## Como executar
-
 ```bash
 cd backend
-python -m pytest tests/ -v        # suíte completa (33 testes)
+python -m pytest tests/ -v        # suíte completa (46 testes)
 python -m pytest tests/test_plano_contas_service.py -v   # só plano de contas
 python -m pytest tests/test_auth_security.py -v          # só segurança
+python -m pytest tests/test_crud_http.py -v              # só CRUD via HTTP
 ```
 
 Pré-requisitos: `pytest`, `pytest-asyncio` e `httpx` instalados.
@@ -75,6 +59,32 @@ Cobre o seed idempotente:
 - **Plano de contas**: cria todas as contas do padrão (`PLANO_CONTAS_PADRAO`) e é idempotente (segunda execução cria 0).
 - **Usuário admin**: cria o administrador e é idempotente (segunda execução não duplica).
 
+### `test_crud_http.py` — endpoints reais via HTTP (13 testes)
+
+Cobre o CRUD completo de plano de contas e contas correntes pela API:
+
+- **Autenticação obrigatória**: sem token, os endpoints de CRUD retornam 401.
+- **Plano de contas**: criar (201), duplicado (409), payload inválido (422), listar (vazio e com itens), obter por id (200/404), atualizar (200), ciclo na hierarquia via HTTP (422), excluir (204 + some da listagem), excluir com filhos (422).
+- **Conta corrente**: criar em plano analítico (201), criar em plano sintético (422), duplicada (409), listar, obter por id, atualizar.
+
+### Contrato das listagens (envelope paginado)
+
+Os endpoints `GET /api/v1/plano-contas` e `GET /api/v1/contas` não retornam uma lista direta — devolvem um envelope paginado:
+```json
+{
+  "items": [...],
+  "total": 2,
+  "limit": 50,
+  "offset": 0
+}
+```
+
+- `items`: registros da página atual.
+- `total`: quantidade total de registros (ignorando `limit`/`offset`).
+- `limit` e `offset`: parâmetros de paginação aplicados (defaults: `limit=50`, `offset=0`).
+
+Os testes de CRUD validam esse contrato lendo `items` e `total`, não o tamanho da resposta.
+
 ## Resumo da cobertura
 
 | Área | Arquivo | Testes |
@@ -83,18 +93,11 @@ Cobre o seed idempotente:
 | Vínculo plano ↔ conta corrente | `test_conta_corrente_service.py` | 7 |
 | Segurança (auth + logger) | `test_auth_security.py` | 13 |
 | Seed (admin + plano) | `test_seed.py` | 4 |
-| **Total** | | **33** |
+| CRUD via HTTP (endpoints reais) | `test_crud_http.py` | 13 |
+| **Total** | | **46** |
 
 ## O que ainda não é testado
 
-- Endpoints de CRUD via HTTP (`GET/POST/PUT/DELETE` de plano de contas e contas correntes) — hoje os testes cobrem os serviços diretamente.
 - Títulos a pagar, movimentações, transferências e conciliação — funcionalidades ainda não implementadas.
 - Rate limiting distribuído (Redis) — o atual é em memória, por processo.
-````
-
----
-
-**Resumindo**
-- A suíte organizada tem **4 arquivos de teste + conftest + pytest.ini**, totalizando **33 testes**.
-- Cobre: ciclo na hierarquia do plano, vínculo plano↔conta corrente, segurança da autenticação e seed idempotente.
-- O `test.md` documenta o escopo, como rodar, o que cada arquivo cobre e o que ainda falta testar.
+- Frontend Streamlit (telas de plano de contas e contas correntes) — testes de interface ainda não criados.

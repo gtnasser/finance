@@ -1,9 +1,15 @@
+
 import pytest
 
 from exceptions import BusinessRuleError, ConflictError, NotFoundError
-from schemas import ContaCorrenteCreate, ContaCorrenteUpdate, PlanoContasCreate, PlanoContasUpdate
-from services.conta_corrente import ContaCorrenteService
+from schemas import (
+    ContaCorrenteCreate,
+    ContaCorrenteUpdate,
+    PlanoContasCreate,
+    PlanoContasUpdate,
+)
 from services.plano_contas import PlanoContasService
+
 
 async def _criar_plano(session, **kwargs):
     defaults = dict(
@@ -17,6 +23,7 @@ async def _criar_plano(session, **kwargs):
     )
     defaults.update(kwargs)
     return await PlanoContasService(session).criar(PlanoContasCreate(**defaults))
+
 
 async def _criar_conta(session, **kwargs):
     defaults = dict(
@@ -36,6 +43,7 @@ async def _criar_conta(session, **kwargs):
         ContaCorrenteCreate(**defaults)
     )
 
+
 # ----- Vínculo: conta corrente só aceita plano analítico -----
 
 @pytest.mark.asyncio
@@ -45,10 +53,12 @@ async def test_nao_permitir_conta_corrente_em_plano_sintetico(session):
     with pytest.raises(BusinessRuleError):
         await _criar_conta(session, plano_conta_id=plano.id)
 
+
 @pytest.mark.asyncio
 async def test_nao_permitir_conta_corrente_em_plano_inexistente(session):
     with pytest.raises(NotFoundError):
         await _criar_conta(session, plano_conta_id=9999)
+
 
 @pytest.mark.asyncio
 async def test_criar_conta_corrente_em_plano_analitico(session):
@@ -62,6 +72,7 @@ async def test_criar_conta_corrente_em_plano_analitico(session):
     assert conta.banco == "001"
     assert conta.plano_conta_id == plano.id
 
+
 # ----- Vínculo: duplicidade de chave bancária -----
 
 @pytest.mark.asyncio
@@ -73,6 +84,7 @@ async def test_nao_permitir_duplicar_banco_agencia_numero(session):
 
     with pytest.raises(ConflictError):
         await _criar_conta(session, plano_conta_id=plano.id)
+
 
 @pytest.mark.asyncio
 async def test_atualizar_para_chave_bancaria_duplicada(session):
@@ -91,8 +103,11 @@ async def test_atualizar_para_chave_bancaria_duplicada(session):
     with pytest.raises(ConflictError):
         await ContaCorrenteService(session).atualizar(
             conta_b.id,
-            ContaCorrenteUpdate(banco="001", agencia="1234", numero="56789-0"),
+            ContaCorrenteUpdate(
+                banco="001", agencia="1234", numero="56789-0"
+            ),
         )
+
 
 # ----- Vínculo: plano vinculado não pode ser excluído -----
 
@@ -106,6 +121,7 @@ async def test_nao_excluir_plano_vinculado_a_conta_corrente(session):
     with pytest.raises(BusinessRuleError):
         await PlanoContasService(session).excluir(plano.id)
 
+
 @pytest.mark.asyncio
 async def test_atualizar_plano_da_conta_para_sintetico_gera_erro(session):
     plano_analitico = await _criar_plano(
@@ -118,5 +134,7 @@ async def test_atualizar_plano_da_conta_para_sintetico_gera_erro(session):
 
     with pytest.raises(BusinessRuleError):
         await ContaCorrenteService(session).atualizar(
-            conta.id, ContaCorrenteUpdate(plano_conta_id=plano_sintetico.id)
+            conta.id,
+            ContaCorrenteUpdate(plano_conta_id=plano_sintetico.id),
         )
+```
