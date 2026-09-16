@@ -19,16 +19,21 @@ class Settings(BaseSettings):
 
     # ----- Segurança -----
     SECRET_KEY: str = "troque-por-uma-chave-segura-em-producao"
-    ALGORITHM: str = "HS256"
+    ALGORITHM : str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
 
     # ----- Banco de dados -----
     DATABASE_URL: str = "sqlite+aiosqlite:///./contas_pagar.db"
 
     # ----- Seed inicial (apenas desenvolvimento) -----
-    ADMIN_NAME : str = "Administrador"
-    ADMIN_EMAIL: str = "admin@admin.com"
+    ADMIN_NAME    : str = "Administrador"
+    ADMIN_EMAIL   : str = "admin@admin.com"
     ADMIN_PASSWORD: str = "admin123"
+
+    # ----- Logs -----
+    LOG_ROTATION : str = "10 MB"
+    LOG_RETENTION: str = "14 days"
+    LOG_NAME     : str = "backend_{time:YYYY-MM-DD}.log"
 
     @property
     def is_production(self) -> bool:

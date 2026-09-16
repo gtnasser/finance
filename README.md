@@ -59,7 +59,7 @@ O FINANCING permite agendar pagamentos, classificar despesas por plano de contas
 
 > Status honesto do que já existe no repositório.
 
-- ✅ **Implementado (MVP)**: autenticação (register, token, me), modelos `Usuario`/`PlanoContas`/`ContaCorrente`, CRUD de plano de contas e contas correntes (repositories + services + routers), camada `services/`/`repositories/`, migrações Alembic, seed (admin + plano de contas), logging, CORS.
+- ✅ **Implementado (MVP)**: autenticação (register, token, me), modelos `Usuario`/`PlanoContas`/`ContaCorrente`, CRUD de plano de contas e contas correntes (repositories + services + routers), camada `services/`/`repositories/`, migrações Alembic, seed (admin + plano de contas), logging, CORS, autenticação (register, token, me) com proteções de segurança — `/register` bloqueado em produção, rate limiting no login, erro 401 padronizado, logger sem diagnose em produção.
 - 🚧 **Em desenvolvimento**: frontend Streamlit — telas de plano de contas e contas correntes.
 - 📋 **Planejado**: títulos a pagar, movimentações, transferências, conciliação (OFX/CSV), relatórios e extratos.
 
@@ -154,12 +154,18 @@ uvicorn main:app --reload --port 8000
 
 ### Segurança (checklist antes do deploy)
 
-- [ ] `SECRET_KEY` forte, gerada por ambiente (nunca commitada)
-- [ ] Endpoint `/register` desabilitado ou restrito a admin
-- [ ] Rate limiting ativo no `/token`
-- [ ] `diagnose=False` e `backtrace=False` no logger (evita vazar dados sensíveis em log)
-- [ ] Seed de usuário desabilitado ou com senha vinda do `.env`
-- [ ] Validação de senha ativa (mínimo de 8 caracteres)
+**Já implementado:**
+- [X] `SECRET_KEY` forte, gerada por ambiente (nunca commitada)
+- [X] Validação de senha ativa (mínimo de 8 caracteres, limite de 72 bytes do bcrypt)
+- [X] Endpoint `/register` desabilitado em produção (retorna 404)
+- [X] Rate limiting no `/token` (5 tentativas / 5 minutos por e-mail)
+- [X] Usuário inativo, inexistente ou senha errada → sempre 401 (não revela qual é o caso)
+- [X] `diagnose=False` e `backtrace=False` no logger em produção (evita vazar dados sensíveis em log)
+- [X] Seed de usuário desabilitado em produção (roda apenas em dev)
+
+**Pendente para o deploy:**
+- [ ] Rate limiting distribuído (Redis) se houver múltiplos workers do uvicorn — o atual é em memória, por processo
+- [ ] Revisão de logs em produção para confirmar que nenhum dado sensível é gravado
 
 ### Logs
 

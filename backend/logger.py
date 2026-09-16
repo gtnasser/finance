@@ -3,23 +3,25 @@ import logging
 from pathlib import Path
 from loguru import logger
 
-# Parametros para rotação e retenção
-LOG_ROTATION = "10 MB"
-LOG_RETENTION = "14 days"
+from config import settings
 
 # Diretório para armazenamento dos arquivos de log
 LOG_DIR = Path(__file__).resolve().parent / "logs"
 LOG_DIR.mkdir(exist_ok=True)
-LOG_FILE = LOG_DIR / "financing.log"
+LOG_FILE = LOG_DIR / settings.LOG_NAME
 
 
 def setup_logger():
     """
-    Configura o Loguru para saídas no Console e em Arquivo com Rotação,
-    e intercepta os logs padrão do Uvicorn/FastAPI.
+    Configura o Loguru para Console/Arquivo com rotação e retenção.
+    intercepta os logs padrão do Uvicorn/FastAPI.
     """
     # Remove manipuladores padrão do Loguru para evitar duplicidade
     logger.remove()
+
+    # Em produção, desliga diagnose/backtrace para não vazar variáveis locais (ex: senhas)
+    diagnose = not settings.is_production
+    backtrace = not settings.is_production
 
     # Saída no terminal; Handler de Console (Estilo Logcat: Colorido e Detalhado); 
     logger.add(
@@ -29,17 +31,19 @@ def setup_logger():
         level="INFO",
     )
 
+    print(LOG_FILE)
+
     # Handler de Arquivo
     logger.add(
         LOG_FILE,
-        rotation=LOG_ROTATION,
-        retention=LOG_RETENTION,
+        rotation=settings.LOG_ROTATION,
+        retention=settings.LOG_RETENTION,
         compression="zip",
         encoding="utf-8",
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
         level="INFO",
-        backtrace=True,
-        diagnose=True,
+        backtrace=backtrace,
+        diagnose=diagnose,
     )
 
     # Interceptador para redirecionar logs nativos do Python (Uvicorn / FastAPI) para o Loguru
