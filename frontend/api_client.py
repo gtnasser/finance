@@ -7,10 +7,15 @@ API_BASE_PREFIX = "/api/v1"
 
 
 class APIClient:
-    def __init__(self, base_url: str = API_BASE_URL+API_BASE_PREFIX):
+
+
+    def __init__(self, base_url: str = API_BASE_URL + API_BASE_PREFIX):
         """Construtor da classe"""
         self.base_url = base_url
 
+
+    # ----- BASE PARA CHAMADAS API -----
+    
     @property
     def token(self) -> str | None:
         """Busca dinamicamente o token JWT salvo na sessão do Streamlit."""
@@ -65,7 +70,7 @@ class APIClient:
             raise exc
 
 
-    # --- MÉTODOS DE AUTENTICAÇÃO ---
+    # ----- AUTENTICAÇÃO -----
 
     def login(self, username: str, password: str) -> dict | None:
         """Autentica o usuário usando OAuth2 Password Flow (Form Data)."""
@@ -99,15 +104,81 @@ class APIClient:
         st.session_state["authenticated"] = False
         logger.info("🔒 Sessão encerrada.")
 
-    # --- MÉTODOS DE NEGÓCIO (EXEMPLOS...) ---
 
-    def get_titulos(self) -> list[dict]:
-        """Obtém a lista de títulos a pagar."""
-        response = self._request("GET", "/titulos/")
-        return response.json() if response.status_code == 200 else []
+    # ----- PLANO DE CONTAS -----
 
-    def criar_titulo(self, dados: dict) -> dict | None:
-        """Cadastra um novo título a pagar."""
-        response = self._request("POST", "/titulos/", json=dados)
-        return response.json() if response.status_code == 201 else None
+    def listar_plano_contas(self, limit: int = 50, offset: int = 0) -> dict:
+        """Lista o plano de contas (retorna envelope paginado: items/total/limit/offset)."""
+        resp = self._request(
+            "GET", "/plano-contas", params={"limit": limit, "offset": offset}
+        )
+        return resp.json()
 
+    def criar_plano_conta(self, payload: dict) -> dict:
+        """Cria uma conta no plano de contas."""
+        resp = self._request("POST", "/plano-contas", json=payload)
+        return resp.json()
+
+    def atualizar_plano_conta(self, id_: int, payload: dict) -> dict:
+        """Atualiza uma conta do plano de contas."""
+        resp = self._request("PUT", f"/plano-contas/{id_}", json=payload)
+        return resp.json()
+
+    def excluir_plano_conta(self, id_: int) -> bool:
+        """Exclui (soft delete) uma conta do plano de contas. Retorna True se 204."""
+        resp = self._request("DELETE", f"/plano-contas/{id_}")
+        return resp.status_code == 204
+
+
+    # ----- CONTA CORRENTE -----
+
+    def listar_contas(self, limit: int = 50, offset: int = 0) -> dict:
+        """Lista as contas correntes (retorna envelope paginado: items/total/limit/offset)."""
+        resp = self._request(
+            "GET", "/contas", params={"limit": limit, "offset": offset}
+        )
+        return resp.json()
+
+    def criar_conta(self, payload: dict) -> dict:
+        """Cria uma conta corrente."""
+        resp = self._request("POST", "/contas", json=payload)
+        return resp.json()
+
+    def atualizar_conta(self, id_: int, payload: dict) -> dict:
+        """Atualiza uma conta corrente."""
+        resp = self._request("PUT", f"/contas/{id_}", json=payload)
+        return resp.json()
+
+    def excluir_conta(self, id_: int) -> bool:
+        """Exclui (soft delete) uma conta corrente. Retorna True se 204."""
+        resp = self._request("DELETE", f"/contas/{id_}")
+        return resp.status_code == 204
+
+
+    # ----- CONTAS BANCÁRIAS ----- 
+
+    ver=""" 
+    def listar_contas(self):
+        response = self._request("GET", "/contas")
+        response.raise_for_status()
+        return response.json()
+
+    def criar_conta(self, token: str, nome: str, tipo: str, saldo_inicial: float):
+        payload = {
+            "nome": nome,
+            "tipo": tipo,
+            "saldo_inicial": saldo_inicial
+        }
+        return self._request("POST", "/contas", json=payload, token=token)
+
+    def atualizar_conta(self, token: str, conta_id: str, nome: str, tipo: str, saldo_inicial: float):
+        payload = {
+            "nome": nome,
+            "tipo": tipo,
+            "saldo_inicial": saldo_inicial
+        }
+        return self._request("PUT", f"/contas/{conta_id}", json=payload, token=token)
+
+    def deletar_conta(self, token: str, conta_id: str):
+        return self._request("DELETE", f"/contas/{conta_id}", token=token)
+"""

@@ -12,19 +12,10 @@ st.set_page_config(
 )
 
 # Inicializa o estado de autenticação
-# TODO: verificacao de autenticacao e recuperar usuario nao deveriam ser funcoes da classe APIClient, preservando os controles de sessao?
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 if "user" not in st.session_state:
     st.session_state["user"] = None
-
-# Componente de Cabeçalho Superior
-def render_header():
-    if st.session_state["authenticated"] and st.session_state["user"] and 1==3:
-        user_name = st.session_state["user"].get("nome", "Usuário")
-        col_title, col_user = st.columns([4, 1])
-        with col_user:
-            st.caption(f"👤 **{user_name}**")
 
 # Definição das Páginas para Roteamento
 def setup_navigation():
@@ -37,7 +28,10 @@ def setup_navigation():
         "Menu Principal": [
             st.Page("views/dashboard.py", title="Dashboard", icon="📊", default=True),
             st.Page("views/titulos.py", title="Contas a Pagar", icon="📄"),
+            st.Page("views/plano_contas.py", title="Plano de Contas", icon="📚"),
+            st.Page("views/conta_corrente.py", title="Conta Corrente", icon="🏦"),
         ],
+        "Cadastros": [st.Page("views/contas.py", title="Contas Bancárias", icon="💰")],
         "Desenvolvimento": [st.Page("views/testes.py", title="Painel de Testes", icon="🧪")],
     })
 
@@ -47,7 +41,7 @@ def render_sidebar():
         
         with st.sidebar:
             st.title("⚙️ Sistema Financeiro")
-            user_name = st.session_state["user"].get("nome", "Usuário") # st.session_state['user'].get('email')
+            user_name = st.session_state["user"].get("nome", "Usuário")
             st.caption(f"👤 **{user_name}**")
             if st.button("Sair / Logout", use_container_width=True, type="secondary"):
                 api_client.logout()
@@ -55,10 +49,8 @@ def render_sidebar():
 
 # Execução da Aplicação
 def main():
-#    setup_logger()
     nav = setup_navigation()
     render_sidebar()
-    render_header()
     nav.run()
 
 if __name__ == "__main__":
