@@ -1,179 +1,184 @@
 # FINANCING
 
-Objetivo: desenvolver um app simples de **Contas a Pagar/Gestão Financeira**
+Sistema de **Contas a Pagar / Gestão Financeira** — aplicação web com frontend e backend isolados, autenticação JWT e persistência relacional.
 
-### 📋 Requisitos funcionais
-- agendar os pagamentos
-- classificar conforme um plano de contas
-- indicar de qual conta corrente será pago
-- emitir uma lista de titulos em aberto
-- emitir um extrato por conta corrente
-- registrar transferencias entre contas
-- permitir fazer conciliação do que foi pago 
+## Visão Geral
 
-### ⚙️ Requisitos não funcionais
-- devera ser desenvolvido em python
-- front-end e back-end isolados 
-- transações executadas no backend via API
-- armazenamento em banco de dados relacional remoto (SQLite em dev local, Postgres remoto em em prod)
-- autenticacao de usuario atraves de login simples
-- dimensionar para: 100 transações/dia, 4 usuários simultâneos
-- registro das atividades em log estilo LOGCAT
+O FINANCING permite agendar pagamentos, classificar despesas por plano de contas, indicar a conta corrente de origem, emitir extratos e conciliar pagamentos. O projeto segue uma arquitetura desacoplada em três camadas, com o backend exposto como API RESTful e o frontend consumindo-a via HTTP.
 
---- 
+## Arquitetura
+```
+┌─────────────┐   HTTP + JWT   ┌──────────────┐   SQLAlchemy 2.0 Async   ┌───────────────────┐
+│  Streamlit  │ ─────────────► │   FastAPI    │ ───────────────────────► │  Banco Relacional │
+│  (Frontend) │                │  (Backend)   │                          │ SQLite / Postgres │
+└─────────────┘                └──────────────┘                          └───────────────────┘
+```
 
-## 🚀 Escopo e Funcionalidades
+### Camadas do backend
 
-> **Nota sobre o estado atual do projeto:**
-> As funcionalidades listadas abaixo representam a visão completa do produto e serão desenvolvidas gradualmente. O foco inicial da **Fase 1 (MVP)** é a entrega da fundação do sistema: arquitetura desacoplada, autenticação segura (OAuth2/JWT), persistência assíncrona e navegação base.
+- **`models.py`** — mapeamento ORM (SQLAlchemy 2.0, tipado com `Mapped[...]`) e estrutura física das tabelas.
+- **`schemas.py`** — contratos Pydantic v2: validação de entrada, serialização de saída e sanitização de dados sensíveis (nunca expõe `senha_hash`).
+- **`services/`** — regras de negócio e operações multi-tabela (baixa de título, transferência, conciliação). Controlam transações.
+- **`routers/`** — endpoints HTTP; finos, delegando para serviços.
+- **`security.py`** — emissão/validação de JWT e hash de senha (`pwdlib[bcrypt]`).
+- **`database.py`** — engine e sessão assíncrona.
+- **`config.py`** — configuração central via `pydantic-settings` (lê variáveis de ambiente).
 
-### 1. Gestão e Agendamento de Títulos
+### Frontend
 
-* **Cadastro de Contas a Pagar:** Registro de lançamentos com data de emissão, data de vencimento, valor, fornecedor/favorecido, número do documento/nota e descrição.
-* **Agendamento de Pagamentos:** Programação de pagamentos futuros (únicos, recorrentes ou parcelados) com alertas ou notificações de vencimentos próximos e contas em atraso.
-* **Anexo de Comprovantes/Documentos:** Opção de anexar boletos, PDFs ou fotos de recibos diretamente ao lançamento.
+- **`app.py`** — entrada do Streamlit com `st.navigation`.
+- **`api_client.py`** — cliente HTTPX que injeta o Bearer Token e centraliza tratamento de erros.
+- **`views/`** — telas (login, dashboard, títulos).
 
-### 2. Classificação Financeira (Plano de Contas)
+## Stack Tecnológica
 
-* **Estruturação por Categorias e Subcategorias:** Organização das despesas conforme o plano de contas (ex.: *Despesas Operacionais > Aluguel*, *Fornecedores > Matéria-Prima*, *Pessoal > Salários*).
-* **Atribuição de Centro de Custos:** Identificação de qual departamento, projeto ou unidade do negócio gerou a despesa.
+| Camada | Tecnologia |
+| --- | --- |
+| Frontend | Streamlit, HTTPX |
+| Backend | FastAPI, Uvicorn |
+| ORM | SQLAlchemy 2.0 (async) |
+| Validação | Pydantic v2 |
+| Autenticação | OAuth2 Password Flow + JWT, `pwdlib[bcrypt]` |
+| Banco (dev) | SQLite + aiosqlite |
+| Banco (prod) | PostgreSQL + asyncpg |
+| Migrações | Alembic |
+| Logs | Loguru (rotação e retenção) |
 
-### 3. Gestão de Contas Bancárias e Transferências
+## Estado Atual do Projeto
 
-* **Seleção de Conta Origem:** Indicação explícita da conta corrente, conta digital, caixa físico ou cartão de crédito de onde sairá o recurso para a quitação.
-* **Transferências entre Contas (TED/Pix/Interna):** Registro de movimentações entre contas próprias da empresa/usuário, garantindo a atualização exata dos saldos sem duplicar receitas ou despesas no DRE/relatórios.
+> Status honesto do que já existe no repositório.
 
-### 4. Controle e Conciliação Financeira
+- ✅ **Implementado (MVP)**: autenticação (register, token, me), modelo `Usuario`, seed de ambiente, logging, estrutura de pastas.
+- 🚧 **Em desenvolvimento**: CRUD de **plano de contas** e **contas correntes** (próximo passo).
+- 📋 **Planejado**: títulos a pagar, movimentações, transferências, conciliação (OFX/CSV), relatórios e extratos.
 
-* **Baixa de Pagamentos:** Registro da data efetiva do pagamento, valor pago (aplicando juros, multas ou descontos) e meio utilizado (Pix, boleto, cartão, débito automático).
-* **Conciliação Bancária:**
-* **Manual:** Mapeamento e marcação individual dos lançamentos do app em relação ao extrato bancário.
-* **Importação (OFX/CSV):** Leitura de arquivo de extrato do banco com cruzamento automático (matching) entre o extrato e os títulos quitados no app.
+## Como Executar (Desenvolvimento)
+```bash
+# Na raiz do projeto
+python -m venv venv
+.\venv\Scripts\Activate.ps1
 
-### 5. Relatórios e Extratos
+# Instale as dependências
+pip install -r requirements.txt
+```
 
-* **Relatório de Contas em Aberto:** Listagem detalhada de obrigações a vencer e vencidas (aging list), filtrável por período, fornecedor ou categoria.
-* **Extrato por Conta Corrente:** Histórico de entradas, saídas, transferências e saldo acumulado linha a linha de uma conta específica em um determinado período.
-* **Fluxo de Caixa Projetado:** Visão consolidada das saídas previstas versus entradas (caso integrado ao Contas a Receber) para evitar saldo negativo nas contas.
+**Backend** (terminal 1):
+```bash
+cd backend
+uvicorn main:app --reload --port 8000
+```
 
+**Frontend** (terminal 2):
+```bash
+cd frontend
+streamlit run app.py
+```
 
----
+- Acesse o frontend em `http://localhost:8501`
+- Documentação interativa da API em `http://localhost:8000/docs`
+- Em desenvolvimento, o banco é criado automaticamente com o usuário seed definido no `.env`
 
+## Configuração de Produção
 
-## 🔄 Principais Regras de Negócio e Relacionamentos
+### Variáveis de ambiente
+
+Copie `.env.example` para `.env` e preencha:
+
+| Variável | Descrição | Exemplo |
+| --- | --- | --- |
+| `SECRET_KEY` | Chave de assinatura do JWT (obrigatória, gere uma forte) | `openssl rand -hex 32` |
+| `DATABASE_URL` | String de conexão do banco | `postgresql+asyncpg://user:pass@host:5432/financing` |
+| `ENVIRONMENT` | Ambiente de execução | `development` / `production` |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Credenciais do seed inicial | — |
+
+### Banco de dados
+
+- **Desenvolvimento**: SQLite (`sqlite+aiosqlite:///./contas_pagar.db`), zero configuração.
+- **Produção**: PostgreSQL via `asyncpg`. A string de conexão vem do `.env`; o engine aplica `pool_pre_ping` para reconectar conexões ociosas.
+
+### Migrações (Alembic)
+```bash
+# Criar a estrutura inicial de migrações
+alembic init alembic
+
+# Após alterar models.py, gerar uma nova migração
+alembic revision --autogenerate -m "descricao"
+
+# Aplicar
+alembic upgrade head
+```
+
+> **Importante**: `create_all` é usado apenas para bootstrap em desenvolvimento. Em produção, toda evolução do schema passa por migrações Alembic.
+
+### Segurança (checklist antes do deploy)
+
+- [ ] `SECRET_KEY` forte, gerada por ambiente (nunca commitada)
+- [ ] Endpoint `/register` desabilitado ou restrito a admin
+- [ ] Rate limiting ativo no `/token`
+- [ ] `diagnose=False` e `backtrace=False` no logger (evita vazar dados sensíveis em log)
+- [ ] Seed de usuário desabilitado ou com senha vinda do `.env`
+- [ ] Validação de senha ativa (mínimo de 8 caracteres)
+
+### Logs
+
+- Backend: `backend/logs/` — rotação de 10 MB, retenção de 14 dias, compressão zip.
+- Frontend: `frontend/logs/` — mesma política.
+- Em produção, `diagnose` e `backtrace` desativados.
+
+## Regras de Negócio e Relacionamentos
 
 | Funcionalidade | Implementação na Modelagem |
 | --- | --- |
 | **Baixa de Título** | Ao pagar um `titulos_pagar`, cria-se um registro de `SAIDA` em `movimentacoes_conta` associado ao `id_titulo_pagar`. |
 | **Transferência entre Contas** | Cria **dois** registros em `movimentacoes_conta` (uma `SAIDA` na origem e uma `ENTRADA` no destino) unidos por um registro único na tabela `transferencias`. |
-| **Extrato da Conta** | É obtido diretamente ordenando a tabela `movimentacoes_conta` por `data_movimento` para a conta informada. O saldo atual é o `saldo_inicial` da conta mais a soma de `ENTRADA` menos `SAIDA`. |
-| **Conciliação** | Grava o vínculo da movimentação com o registro vindo do arquivo OFX/CSV (usando `fitid_ofx` para evitar duplicidades) e marca `conciliado = TRUE` no movimento. |
+| **Extrato da Conta** | Obtido ordenando `movimentacoes_conta` por `data_movimento` para a conta informada. O saldo atual é o `saldo_inicial` mais a soma de `ENTRADA` menos `SAIDA`. |
+| **Conciliação** | Grava o vínculo da movimentação com o registro do arquivo OFX/CSV (usando `fitid_ofx` para evitar duplicidades) e marca `conciliado = TRUE`. |
 
-
------
-
-## ARQUITETURA
-
-O projeto adota uma arquitetura **MVP (Minimum Viable Product)** robusta, bem estruturada e desacoplada em três camadas principais: **Streamlit (Frontend) → FastAPI (Backend) → Relational DB (Database)**.
-
-### 🏛️ Pilares da Arquitetura
-
-- **Decoupled MVP (Separação de Responsabilidades):** Em vez de construir uma aplicação monolítica onde o banco de dados é acessado diretamente pelas telas, o frontend e o backend são totalmente independentes. A lógica de negócios e as regras financeiras residem 100% na API RESTful, permitindo reutilizar o backend no futuro para outras interfaces (como React, Vue ou aplicativos móveis).
-- **Persistência Escalável sem Refatoração:** Com a adoção do **SQLAlchemy 2.0 Async**, o ambiente de desenvolvimento utiliza **SQLite** (`contas_pagar.db`) para agilidade e simplicidade de testes locais. A transição para um banco relacional robusto em produção (como **PostgreSQL** ou **MySQL**) exige apenas a alteração da string de conexão (`DATABASE_URL`), sem necessidade de reescrever a camada de regras de negócio.
-- **Segurança Profissional desde o Dia 1:** O sistema adota padrões modernos de autenticação baseados em **OAuth2 Password Flow** com tokens **JWT** e hashing defensivo de senhas via **`pwdlib[bcrypt]`**, garantindo proteção contra vulnerabilidades básicas de segurança em um ecossistema financeiro.
-
-
-### 💻 Camada de Frontend (`frontend/`)
-
-- **Abstração HTTP (`api_client.py`):** Atua como a camada de serviço de rede no frontend, isolando as views do Streamlit de detalhes de infraestrutura HTTP. Ele encapsula a biblioteca `httpx`, gerencia a URL base da API, realiza o tratamento centralizado de exceções de conexão e injeta automaticamente o cabeçalho de autenticação (`Authorization: Bearer <token>`) em todas as requisições autenticadas.
-
-
-### ⚙️ Camada de Backend (`backend/`)
-
-- **Autenticação e Autorização (`routers/auth.py` & `security.py`):** O backend é o único responsável por validar credenciais, emitir e verificar tokens JWT (assinados assincronamente com chave secreta) e gerenciar o ciclo de vida da sessão do usuário.
-- **Camada de persistência:** Adotado o **SQLAlchemy 2.0 Async** para gerenciar um banco relacional SQL, mapeamentos relacionais usando **ORM Models**, e scripts para **configuração da sessão/Engine**, **carga inicial (*Seed*)** com valores padrão e adicional para testes.
-- **Desacoplamento de Persistência e Integração (`models.py` vs `schemas.py`):**
-  - **`models.py` (SQLAlchemy):** Define o mapeamento objeto-relacional (ORM) e a estrutura física das tabelas no banco de dados.
-  - **`schemas.py` (Pydantic v2):** Define os contratos da API, realizando a validação estrita de entrada (payloads), a serialização de saída e a sanitização de dados sensíveis (impedindo a exposição de campos como `senha_hash`).
-  - Essa divisão garante contratos flexíveis de criação, atualização e leitura de dados sem acoplar a interface ao esquema estrutural do banco de dados.
-- **Registro de Atividades em log:**
-  - Rastreabilidade sem poluição: utiliza um padrão profissional de log com rotação e retenção customizáveis, e possibilidade de ativar/desativar/alterar nivel de registro em tempo de execução.
-  - Auditoria de Operações Financeiras: Registra ações críticas (ex: criação de títulos, alteração de saldos, tentativas de login) com carimbo de data/hora (timestamp).
-  - Diagnóstico em Produção: Quando em produção, pode ser lido por outras ferramentas para identificação de falhas e geração de estatísticas.
-
-
-### 📂 Estrutura de Diretórios Atual
-
+## Estrutura de Diretórios
 ```text
 financing/
-├── .gitignore            # Ignora venv, *.db, .env, caches
-├── .env.example          # Modelo de variáveis de ambiente (SECRET_KEY, DATABASE_URL)
-├── requirements.txt      # Dependências do projeto (FastAPI, Streamlit, SQLAlchemy, etc.)
+├── .env.example            # Modelo de variáveis de ambiente
+├── requirements.txt        # Dependências do projeto
 ├── backend/
-│   ├── database.py       # Engine e AsyncSessionLocal (SQLAlchemy 2.0)
-│   ├── logs/             # Logs exclusivos da API FastAPI
-│   │   └── api.log
-│   ├── logger.py         # Configuração de log do backend
-│   ├── models.py         # Modelos relacionais ORM (Usuario, PlanoContas, TitulosPagar, etc.)
-│   ├── schemas.py        # Validações Pydantic (Token, Request/Response, etc.)
-│   ├── security.py       # Gerenciamento de JWT e validação de hash pwdlib
-│   ├── main.py           # FastAPI lifespan, rotas principais, seed automático
-│   └── routers/
-│       └── auth.py       # Endpoints /auth/token e /auth/me
+│   ├── config.py           # Configuração central (pydantic-settings)
+│   ├── database.py         # Engine e sessão assíncrona
+│   ├── logger.py           # Configuração de log
+│   ├── models.py           # Modelos ORM
+│   ├── schemas.py          # Contratos Pydantic
+│   ├── security.py         # JWT e hash de senha
+│   ├── main.py             # FastAPI: lifespan, rotas, seed
+│   ├── services/           # Regras de negócio (a criar)
+│   ├── routers/
+│   │   ├── auth.py         # /auth/token, /auth/me, /auth/register
+│   │   └── contas.py       # CRUD de contas bancárias (a reescrever)
+│   └── logs/
 └── frontend/
-    ├── app.py            # Ponto de entrada Streamlit com st.navigation
-    ├── api_client.py     # Cliente HTTPX com injeção de Bearer Token
-    ├── logs/             # Logs exclusivos da interface Streamlit
-    │   └── ui.log
-    ├── logger.py         # Configuração de log do frontend
-    └── views/
-        ├── login.py      # Tela de autenticação
-        ├── dashboard.py  # Visão geral de métricas
-        └── titulos.py    # Gestão de Contas a Pagar (CRUD)
+    ├── app.py              # Entrada Streamlit (st.navigation)
+    ├── api_client.py       # Cliente HTTPX com Bearer Token
+    ├── logger.py           # Log do frontend
+    ├── views/
+    │   ├── login.py
+    │   ├── dashboard.py
+    │   └── titulos.py
+    └── logs/
 ```
 
+## Requisitos Funcionais
 
-financing/
-├── backend/
-│   └── main.py
-│
-└── frontend/
-    └── app.py
+- Agendar pagamentos
+- Classificar conforme um plano de contas
+- Indicar a conta corrente de origem do pagamento
+- Emitir lista de títulos em aberto
+- Emitir extrato por conta corrente
+- Registrar transferências entre contas
+- Permitir conciliação do que foi pago
 
+## Requisitos Não Funcionais
 
------
-
-
-## TO RUN
-
-```bash
-# Na raiz do projeto (financing/)
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-
-# Instale os pacotes necessários
-# separados por ambiente caso execute em instancias diferentes
-pip install -r frontend/requirements.txt
-pip install -r backend/requirements.txt
-```
-
-backend - terminal 1
-```bash
-# savegue até a pasta do backend
-cd backend
-uvicorn main:app --reload --port 8000
-```
-
-frontend - terminal 2
-```bash
-#N svegue até a pasta do frontend
-cd frontend
-streamlit run app.py
-```
-
-Testando o Fluxo Completo
-- Acessar o Streamlit: O navegador abrirá automaticamente em http://localhost:8501
-- Será criado automaticamente o banco local com um usuário admin@admin.com, senha admin123
-- Pode testar a documentação interativa da API em: http://localhost:8000/docs
-- Realizar o Login: Informe as credenciais email:admin@admin.com e sernha:admin123
-- Internamente, o cliente HTTP solicitará o token JWT ao backend, salvará o cabeçalho no st.session_state e redirecionará para o Dashboard
+- Desenvolvido em Python
+- Frontend e backend isolados
+- Transações executadas no backend via API
+- Banco relacional remoto (SQLite em dev, PostgreSQL em prod)
+- Autenticação por login simples (OAuth2/JWT)
+- Dimensionado para 100 transações/dia e 4 usuários simultâneos
+- Registro de atividades em log estilo LOGCAT
