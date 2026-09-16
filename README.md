@@ -23,7 +23,7 @@ O FINANCING permite agendar pagamentos, classificar despesas por plano de contas
 - **`routers/`** — endpoints HTTP; finos, delegando para serviços e autenticados via `get_current_user`.
 - **`dependencies.py`** — `get_current_user`: decodifica o JWT e busca o usuário no banco.
 - **`exceptions.py`** — exceções de domínio (`NotFoundError`, `ConflictError`, `BusinessRuleError`) mapeadas para 404/409/422 no `main.py`.
-- **`security.py`** — emissão/validação de JWT e hash de senha (`pwdlib[bcrypt]`).
+- **`security.py`** — emissão/validação de JWT, hash de senha (`pwdlib[bcrypt]`) e política de senha.
 - **`database.py`** — engine e sessão assíncrona.
 - **`config.py`** — configuração central via `pydantic-settings` (lê variáveis de ambiente).
 - **`seed.py`** — seed idempotente (admin + plano de contas padrão), roda no startup em desenvolvimento.
@@ -54,12 +54,14 @@ O FINANCING permite agendar pagamentos, classificar despesas por plano de contas
 | Banco (prod) | PostgreSQL + asyncpg |
 | Migrações | Alembic |
 | Logs | Loguru (rotação e retenção) |
+| Testes | pytest + pytest-asyncio + httpx |
 
 ## Estado Atual do Projeto
 
 > Status honesto do que já existe no repositório.
 
-- ✅ **Implementado (MVP)**: autenticação (register, token, me), modelos `Usuario`/`PlanoContas`/`ContaCorrente`, CRUD de plano de contas e contas correntes (repositories + services + routers), camada `services/`/`repositories/`, migrações Alembic, seed (admin + plano de contas), logging, CORS, autenticação (register, token, me) com proteções de segurança — `/register` bloqueado em produção, rate limiting no login, erro 401 padronizado, logger sem diagnose em produção.
+- ✅ **Implementado (MVP)**: autenticação (register, token, me) com proteções de segurança — `/register` bloqueado em produção, rate limiting no login, erro 401 padronizado, logger sem diagnose em produção; modelos `Usuario`/`PlanoContas`/`ContaCorrente`; CRUD de plano de contas e contas correntes (repositories + services + routers); migrações Alembic; seed (admin + plano de contas); logging; CORS.
+- ✅ **Testes (46)**: regras de hierarquia (ciclo), vínculo plano ↔ conta corrente, segurança da autenticação, seed idempotente e CRUD via HTTP.
 - 🚧 **Em desenvolvimento**: frontend Streamlit — telas de plano de contas e contas correntes.
 - 📋 **Planejado**: títulos a pagar, movimentações, transferências, conciliação (OFX/CSV), relatórios e extratos.
 
@@ -86,9 +88,29 @@ cd frontend
 streamlit run app.py
 ```
 
+**Testes**:
+```bash
+cd backend
+python -m pytest tests/ -v
+```
+
 - Acesse o frontend em `http://localhost:8501`
 - Documentação interativa da API em `http://localhost:8000/docs`
 - O seed roda apenas em desenvolvimento e cria o usuário admin (`ADMIN_EMAIL`/`ADMIN_PASSWORD` do `.env`) e o plano de contas padrão. É idempotente — não duplica dados.
+
+## Testes
+
+Suíte com **46 testes** cobrindo regras de negócio, segurança e os endpoints HTTP reais. O banco é SQLite em memória, isolado por teste; a API é exercitada via `ASGITransport` (sem abrir porta e sem rodar o seed).
+
+| Arquivo | Cobertura | Testes |
+| --- | --- | --- |
+| `tests/test_plano_contas_service.py` | Hierarquia do plano: ciclo, parentesco, exclusão/conversão, código único | 9 |
+| `tests/test_conta_corrente_service.py` | Vínculo plano ↔ conta corrente, duplicidade bancária, proteção do plano | 7 |
+| `tests/test_auth_security.py` | 401 padronizado, rate limit, `/register` protegido, `/me`, logger | 13 |
+| `tests/test_seed.py` | Seed idempotente (admin + plano de contas) | 4 |
+| `tests/test_crud_http.py` | Endpoints reais via HTTP: CRUD + autenticação obrigatória | 13 |
+
+Referência completa do escopo: `test.md`.
 
 ## Configuração de Produção
 
@@ -98,7 +120,7 @@ Copie `.env.example` para `.env` e preencha:
 
 | Variável | Descrição | Exemplo |
 | --- | --- | --- |
-| `SECRET_KEY` | Chave de assinatura do JWT (obrigatória, gere uma forte) | `openssl rand -hex 32` |
+| `SECRET_KEY` | Chave de assinatura do JWT (obrigatória, gere uma forte com 32+ bytes) | `openssl rand -hex 32` |
 | `DATABASE_URL` | String de conexão do banco | `postgresql+asyncpg://user:pass@host:5432/financing` |
 | `ENVIRONMENT` | Ambiente de execução | `development` / `production` |
 | `CORS_ORIGINS` | Origens permitidas (separadas por vírgula) | `http://localhost:8501` |
@@ -152,7 +174,7 @@ alembic upgrade head
 uvicorn main:app --reload --port 8000
 ```
 
-### Segurança (checklist antes do deploy)
+### Segurança
 
 **Já implementado:**
 - [X] `SECRET_KEY` forte, gerada por ambiente (nunca commitada)
@@ -194,6 +216,7 @@ financing/
 │   ├── alembic/
 │   │   ├── env.py          # Versão assíncrona (lê DATABASE_URL do config)
 │   │   └── versions/       # Migrações geradas
+│   ├── pytest.ini          # Configuração do pytest (pythonpath = .)
 │   ├── config.py           # Configuração central (pydantic-settings)
 │   ├── database.py         # Engine e sessão assíncrona
 │   ├── dependencies.py     # get_current_user (JWT → usuário)
@@ -202,7 +225,7 @@ financing/
 │   ├── main.py             # FastAPI: lifespan, CORS, handlers, routers
 │   ├── models.py           # Usuario, PlanoContas, ContaCorrente
 │   ├── schemas.py          # Contratos Pydantic (Create/Update/Read)
-│   ├── security.py         # JWT e hash de senha
+│   ├── security.py         # JWT, hash de senha e política de senha
 │   ├── seed.py             # Seed idempotente (admin + plano de contas)
 │   ├── repositories/
 │   │   ├── base.py         # Repositório genérico (soft delete automático)
@@ -215,6 +238,13 @@ financing/
 │   │   ├── auth.py         # /auth/token, /auth/me, /auth/register
 │   │   ├── plano_contas.py # CRUD /api/v1/plano-contas
 │   │   └── conta_corrente.py # CRUD /api/v1/contas
+│   ├── tests/
+│   │   ├── conftest.py     # Fixtures: session (SQLite em memória) + client HTTP
+│   │   ├── test_plano_contas_service.py
+│   │   ├── test_conta_corrente_service.py
+│   │   ├── test_auth_security.py
+│   │   ├── test_seed.py
+│   │   └── test_crud_http.py
 │   └── logs/
 └── frontend/
     ├── app.py              # Entrada Streamlit (st.navigation)
@@ -246,4 +276,3 @@ financing/
 - Autenticação por login simples (OAuth2/JWT)
 - Dimensionado para 100 transações/dia e 4 usuários simultâneos
 - Registro de atividades em log estilo LOGCAT
-
