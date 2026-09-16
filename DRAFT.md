@@ -12,6 +12,8 @@
 - Backend
   - Módulo de autenticação JWT
   - Criação de usuário `admin` no startup
+  - Logging
+
 
 
 ### TODO:
@@ -125,6 +127,15 @@ Vamos trabalhar com um único Ambiente Virtuai na raiz, instalando todas as bibl
 - Desvantagem: a imagem Docker ou o servidor de hospedagem do frontend vai instalar dependências do banco de dados/SQLAlchemy sem necessidade.
 
 
+
+
+
+TODO:
+criar aquivos de configuração com as constantes que estão espalhadas pelos fontes:
+
+import os
+# Puxa a URL base do ambiente ou usa localhost como fallback
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 
 
 <details>
@@ -1780,3 +1791,78 @@ POST /api/v1/conciliacao/confirmar
 
 
 
+
+
+----------
+
+Alura:
+
+sugerir incluir uma rotina para extrair dados do jwt para teste?
+
+
+from logger import logger
+
+def decode_access_token(
+    token: str, verify: bool = True
+) -> dict[str, str | None]:
+    """Decodifica um token JWT e extrai informações detalhadas do payload.
+
+    Args:
+        token: A string do token JWT (ex: "eyJhbGciOi...")
+        verify: Se True, valida a assinatura e expiração usando a SECRET_KEY.
+          Se False, apenas lê o conteúdo (útil para inspeção/debug).
+
+    Returns:
+        Um dicionário contendo os dados do payload e datas formatadas.
+    """
+    try:
+        # Se verify=False, lê o payload sem validar a assinatura
+        options = {"verify_signature": verify, "verify_exp": verify}
+
+        # 1. Decodifica o cabeçalho (Header) do token
+        header = jwt.get_unverified_header(token)
+
+        # 2. Decodifica os dados do payload
+        payload = jwt.decode(
+            token,
+            key=settings.SECRET_KEY if verify else "",
+            algorithms=[settings.ALGORITHM],
+            options=options,
+        )
+
+        # 3. Formata os campos de timestamp (exp, iat) para datetime legível
+        exp_timestamp = payload.get("exp")
+        exp_data = (
+            datetime.fromtimestamp(exp_timestamp, tz=timezone.utc).strftime("%d/%m/%Y %H:%M:%S UTC")
+            if exp_timestamp
+            else "Sem expiração"
+        )
+        iat_timestamp = payload.get("iat")
+        iat_data = (
+            datetime.fromtimestamp(iat_timestamp, tz=timezone.utc).strftime("%d/%m/%Y %H:%M:%S UTC")
+            if iat_timestamp
+            else "Não informado"
+        )
+
+        # Retorna o diagnóstico estruturado
+        return {
+            "status": "VÁLIDO" if verify else "INSPECIONADO",
+            "algoritmo": header.get("alg"),
+            "tipo_token": header.get("typ", "JWT"),
+            "subjetivo_usuario": payload.get("sub"),
+            "emitido_em": iat_data,
+            "expira_em": exp_data,
+            "payload_completo": payload,
+        }
+
+    except jwt.ExpiredSignatureError:
+        logger.warning("⚠️ Token expirado.")
+        return {"status": "EXPIRADO", "erro": "O token já expirou."}
+    except jwt.InvalidTokenError as exc:
+        logger.error(f"❌ Token inválido: {exc}")
+        return {"status": "INVÁLIDO", "erro": str(exc)}
+    
+
+    ----------
+
+    

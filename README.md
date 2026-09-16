@@ -32,7 +32,7 @@ O FINANCING permite agendar pagamentos, classificar despesas por plano de contas
 
 - **`app.py`** — entrada do Streamlit com `st.navigation`.
 - **`api_client.py`** — cliente HTTPX que injeta o Bearer Token e centraliza tratamento de erros.
-- **`views/`** — telas (login, dashboard, títulos).
+- **`views/`** — telas (login, dashboard, títulos, plano de contas, contas correntes).
 
 ## Decisões de Modelagem
 
@@ -62,8 +62,10 @@ O FINANCING permite agendar pagamentos, classificar despesas por plano de contas
 
 - ✅ **Implementado (MVP)**: autenticação (register, token, me) com proteções de segurança — `/register` bloqueado em produção, rate limiting no login, erro 401 padronizado, logger sem diagnose em produção; modelos `Usuario`/`PlanoContas`/`ContaCorrente`; CRUD de plano de contas e contas correntes (repositories + services + routers); migrações Alembic; seed (admin + plano de contas); logging; CORS.
 - ✅ **Testes (46)**: regras de hierarquia (ciclo), vínculo plano ↔ conta corrente, segurança da autenticação, seed idempotente e CRUD via HTTP (incluindo o contrato de listagem paginada).
-- 🚧 **Em desenvolvimento**: frontend Streamlit — telas de plano de contas e contas correntes.
+- ✅ **Frontend (parcial)**: telas de **Plano de Contas** e **Contas Correntes** implementadas (listagem paginada, formulários de criação/edição, exclusão com confirmação, botões de ação alinhados horizontalmente via `st.columns`); `api_client.py` com 8 métodos CRUD; navegação via `st.navigation` com proteção por token.
+- 🚧 **Em desenvolvimento**: tela de **Contas a Pagar** (placeholder ativo — aguarda o CRUD de títulos no backend).
 - 📋 **Planejado**: títulos a pagar, movimentações, transferências, conciliação (OFX/CSV), relatórios e extratos.
+
 
 ## Como Executar (Desenvolvimento)
 ```bash
@@ -248,14 +250,17 @@ financing/
 │   │   ├── test_seed.py
 │   │   └── test_crud_http.py
 │   └── logs/
+
 └── frontend/
-    ├── app.py              # Entrada Streamlit (st.navigation)
-    ├── api_client.py       # Cliente HTTPX com Bearer Token
+    ├── app.py              # Entrada Streamlit (st.navigation + proteção por token)
+    ├── api_client.py       # Cliente HTTPX: 8 métodos CRUD + auth + tratamento de 401
     ├── logger.py           # Log do frontend
     ├── views/
     │   ├── login.py
     │   ├── dashboard.py
-    │   └── titulos.py
+    │   ├── titulos.py      # Placeholder (aguarda backend de títulos)
+    │   ├── plano_contas.py # CRUD plano de contas (listagem paginada + formulário)
+    │   └── contas_correntes.py # CRUD contas correntes (listagem paginada + formulário)
     └── logs/
 ```
 

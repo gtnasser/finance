@@ -1,0 +1,311 @@
+
+----------
+
+Streamlit
+
+colocar info acima do navigation -> navigation a perdeu funcionalidade, nao clica mais nas opcoes de navegacao
+alterar a posicao fez com que as opcoes ficassem atras de algum outro elemento, afetando assim o clique nas opcoes 
+
+            # hack para colocar usuario acima e navegacao abaixo no sidebar
+            st.html("<style>div[data-testid=\"stSidebarNav\"]{position:relative; top:150px}/style>")
+            st.html("<style>div[data-testid=\"stSidebarUserContent\"]{position:relative; top:-200px}/style>")
+
+----------
+
+SQLITE
+
+# deve validar se o caminho completo esta correto, porque se nao existir o SQLITE cria um banco vazio
+# entao deve executar a rotina de criacao das estruturas do banco (inclusive com dados iniciais) quando pertinente
+
+DB_PATH = Path(__file__).parent / "contas_pagar.db"
+obs: Path(__file__) retorna o caminho do modulo
+
+DB_PATH = "backend/contas_pagar.db"
+
+DB_PATH = os.environ.get("DATABASE_URL", "sqlite:///occurrences.db")
+
+    try:
+        # 1. Conecta diretamente ao arquivo SQLite
+    except sqlite3.Error as e:
+        print(f"Erro ao acessar o banco de dados SQLite: {e}")
+        return False
+
+----------
+
+CONSOLE
+
+1. comando COLOR - No windows, ```color BG``` definbe a cor (B=cor de  fundo, F=cor do texto)
+
+Dígito Cor
+0 Preto
+1 Azul
+2 Verde
+3 Aqua (Ciano)
+4 Vermelho
+5 Roxo
+6 Amarelo
+7 Branco (Cinza claro)
+8 Cinza
+9 Azul claro
+A Verde claro
+B Aqua claro
+C Vermelho claro
+D Roxo claro
+E Amarelo claro
+F Branco brilhante
+
+
+2. – ANSI Escape Codes - permite colorir apenas parte das mensagens
+
+Windows: echo ^[[92mBackend iniciado com sucesso!^[[0m
+Linux (e VSCode): echo -e "\033[32mBackend iniciado com sucesso!\033[0m"
+
+Código	Cor
+30	Preto
+31	Vermelho
+32	Verde
+33	Amarelo
+34	Azul
+35	Magenta
+36	Ciano
+37	Branco
+
+? 1a cor ?
+
+Print('^[[30m → Preto^[[0m')
+Print('^[[31m → Vermelho^[[0m')
+Print('^[[32m → Verde^[[0m')
+Print('^[[33m → Amarelo^[[0m')
+Print('^[[34m → Azul^[[0m')
+Print('^[[35m → Magenta^[[0m')
+Print('^[[36m → Ciano^[[0m')
+Print('^[[37m → Branco^[[0m')
+
+print('\033[30mDISABLED\033[0m → Preto')
+print('\033[31mALERT\033[0m → Vermelho')
+print('\033[32mSUCCESS\033[0m → Verde')
+print('\033[33mWARNING\033[0m → Amarelo')
+print('\033[36mINFO\033[0m → Ciano')
+
+----------
+
+BATCH
+
+@echo off
+setlocal enabledelayedexpansion
+
+set "color=0123456789ABCDEF"
+
+for /l %%i in (0,1,15) do (
+    echo !color:~%%i,1!
+)
+
+endlocal
+pause
+
+----------
+
+MARKDOWN ACCORDION
+
+Nao tem suporte a Accordion no Markdown puro, geralmente é usado um recurso do HTML que funciona na maioria das plataformas:
+
+```markdown
+<details>
+<summary>🎨 Como usar cores no console?</summary>
+
+- **Windows (color):**
+  ```
+  color 0A   :: fundo preto, texto verde claro
+  ```
+
+- **Linux (ANSI):**
+  ```
+  echo -e "\033[92mMensagem verde\033[0m"
+  ```
+</details>
+```
+
+
+-----
+
+requirements.txt
+
+jsonschema-specifications==2025.9.1
+loguru==0.7.3
+MarkupSafe==3.0.3
+narwhals==2.26.0
+numpy==2.5.3
+packaging==26.3
+pandas==3.0.5
+passlib==1.7.4
+pillow==12.3.0
+protobuf==7.36.1
+pwdlib==0.3.1
+pyarrow==25.0.1
+pydantic==2.13.5
+pydantic_core==2.46.5
+pydeck==0.9.3
+PyJWT==2.14.0
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.3
+python-multipart==0.0.32
+PyYAML==6.0.3
+referencing==0.37.0
+requests==2.34.2
+rpds-py==2026.6.3
+six==1.17.0
+SQLAlchemy==2.0.52
+starlette==1.6.0
+streamlit==1.63.0
+toml==0.10.2
+typing-inspection==0.4.4
+typing_extensions==4.16.0
+tzdata==2026.4
+urllib3==2.7.0
+uvicorn==0.52.4
+watchdog==6.0.0
+watchfiles==1.2.0
+websockets==16.1.1
+win32_setctime==1.2.0
+
+----------
+
+API_CLIENT
+
+
+  listar_plano_contas(limit=50, offset=0) → GET /api/v1/plano-contas
+  criar_plano_conta(payload)              → POST /api/v1/plano-contas
+  atualizar_plano_conta(id, payload)      → PUT /api/v1/plano-contas/{id}
+  excluir_plano_conta(id)                 → DELETE /api/v1/plano-contas/{id}
+  listar_contas(limit=50, offset=0)       → GET /api/v1/contas
+  criar_conta(payload)                    → POST /api/v1/contas
+  atualizar_conta(id, payload)            → PUT /api/v1/contas/{id}
+  excluir_conta(id)                       → DELETE /api/v1/contas/{id}
+
+
+Pontos de atenção nas views novas
+- Sempre ler o envelope: resp["items"] e resp["total"], nunca len(resp) — o contrato paginado do backend.
+- DELETE 204 não tem corpo: por isso os métodos de exclusão retornam bool, não resp.json() (httpx lança erro ao tentar parsear 204 vazio).
+- Selects precisam da lista completa: o selectbox de "Conta superior" (só sintéticas) e o de "Plano de contas" (só analíticas) precisam buscar todos os registros, não só a primeira página. Use limit alto (listar_plano_contas(limit=1000)) e filtre no frontend. Vale conferir se o backend aceita limit alto sem teto.
+- Erro de conexão: o _request re-levanta `httpx.
+- RequestError. As views devem capturar e mostrar st.error("Servidor indisponível")` em vez de deixar o Streamlit exibir traceback.
+- Mostrar a mensagem do 422: o backend devolve detail no corpo — exiba resp.json()["detail"] no st.error para o usuário ver a regra de negócio (ex.: "conta com filhos não pode ser excluída").
+- Códigos de sucesso: criação → 201, atualização → 200, exclusão → 204. Depois de cada ação, st.rerun() para recarregar a listagem.
+
+----------
+
+Implementação sistema de log (semelhante ao Logcat)
+
+Nível|Equivalente Logcat|Quando Usar
+---|---|---
+DEBUG|Log.d()|Detalhes de desenvolvimento (ex: SQLs executados, payloads de requisição). Desativado em produção.
+INFO|Log.i()|Eventos normais do sistema (ex: "Usuário X autenticado", "Título #123 criado com sucesso").
+WARNING|Log.w()|Situações anômalas tratadas (ex: "Tentativa de login com e-mail não existente", "Token próximo de expirar").
+ERROR|Log.e()|Erros de execução/exceções capturadas (ex: "Falha de conexão com SQLite", "Erro ao processar baixa").
+CRITICAL|Log.f() (Fatal)|Falhas graves que derrubam o serviço ou impedem a API de subir.
+
+financing/
+├── backend/
+│   ├── logger.py        # Configuração central de log (Handlers, Formatters, Níveis)
+│   ├── main.py          # Log de eventos de startup/shutdown
+│   ├── database.py      # Log de conexão do banco
+│   └── routers/
+│       ├── auth.py      # Log de autenticações (INFO/WARNING)
+│       └── titulos.py   # Log de operacoes CRUD (INFO/ERROR)
+
+----------
+
+PYTHON CLASSES
+
+Um método estático é um método puro, não lê nem altera nada que pertença à classe/instância (ex: _get_headers1).
+Já _get_headers2 não é um método estático pois acessa a propriedade `token`, asism o primeiro argumento tem que ser necessariamente `self`.
+
+class APIClient:
+    def __init__(self, base_url: str = "http://localhost:8000"):
+        """construtor"""
+        self.base_url = base_url
+        self.token = None
+
+    @property
+    def token(self) -> str | None:
+        """Busca dinamicamente o token JWT salvo na sessão do Streamlit."""
+        return st.session_state.get("token")
+
+    @staticmethod
+    def _get_headers1() -> dict:
+        """Monta os cabeçalhos das requisições injetando o Bearer Token se disponível."""
+        headers = {"Content-Type": "application/json"}
+        token = st.session_state.get("token")
+        if token:
+            headers["Authorization"] = f"Bearer {self.token}"
+        return headers
+
+    def _get_headers2(self) -> dict:
+        """Monta os cabeçalhos das requisições injetando o Bearer Token se disponível."""
+        headers = {"Content-Type": "application/json"}
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+        return headers
+
+----------
+
+Abrir documentção Sweagr do FastAPI
+
+http://localhost:8000/docs
+
+----------
+
+STREAMLIT
+
+--- Formatar JSON
+
+import streamlit as st
+import json
+
+meu_json = {
+    "arquivo": "foto_01.jpg",
+    "dimensoes_originais": {"largura": 3840, "altura": 2160},
+    "status": "processado",
+    "tags": ["ticket_out", "sucesso"]
+}
+
+# Converte o dicionário em string formatada (com identação)
+json_string = json.dumps(meu_json, indent=2, ensure_ascii=False)
+
+# Exibe via Markdown
+st.markdown(f"```json\n{json_string}\n```")
+
+--- Spinner
+
+    with st.spinner("Wait for it...", show_time=True):
+        time.sleep(5)
+
+--- JSON tamanho de letra reduzido 
+
+st.markdown("""<style>.stJson .object-content{font-size: 10px !important;}</style>""", unsafe_allow_html=True)
+st.write(f"**response:**",user_response.json())
+st.json(response.json())
+
+
+----------
+
+curl -X GET -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBhZG1pbi5jb20iLCJleHAiOjE3ODk0NzA0MTUsImlhdCI6MTc4OTQ0MTYxNX0._mLmrD-Pg06FQo5wFr7YqhCw2pmQJhTDJwM7AHRZDCA" http://localhost:8000/api/v1/contas
+[{"nome":"Conta Corrente Principal","tipo":"Corrente","saldo_inicial":5250.0,"id":"c1a2b3c4"},{"nome":"Reserva de Emergência","tipo":"Poupança","saldo_inicial":12000.5,"id":"d5e6f7g8"},{"nome":"Carteira de Investimentos","tipo":"Investimento","saldo_inicial":8500.75,"id":"h9i0j1k2"}]
+
+
+--
+
+curl -X POST http://localhost:8000/api/v1/auth/token -d "username=admin@admin.com&password=admin123" -H "Content-Type: application/x-www-form-urlencoded"
+{"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBhZG1pbi5jb20iLCJleHAiOjE3ODk1Njg5OTEsImlhdCI6MTc4OTU0MDE5MX0.zkDUWItUbZkALQSFLVoPf03ZaF0Ozq845VI5WhF7K-A","token_type":"bearer"}
+
+curl -X GET -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBhZG1pbi5jb20iLCJleHAiOjE3ODk1Njg5OTEsImlhdCI6MTc4OTU0MDE5MX0.zkDUWItUbZkALQSFLVoPf03ZaF0Ozq845VI5WhF7K-A" http://localhost:8000/api/v1/contas
+
+
+----------
+
+st.html(
+    "<p><span style='text-decoration: line-through double red;'>Oops</span>!</p>"
+)
+
+----------
+
