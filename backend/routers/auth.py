@@ -15,39 +15,9 @@ from security import (
     get_password_hash,
     verify_password,
 )
+from dependencies import get_current_user, oauth2_scheme
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Autenticação"])
-
-# Esquema OAuth2 indicando a URL de obtenção do token
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
-
-async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
-    db: Annotated[AsyncSession, Depends(get_db_session)]
-) -> Usuario:
-    """Dependência para injetar o usuário autenticado a partir do Token JWT."""
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Não foi possível validar as credenciais.",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-    except jwt.PyJWTError:
-        raise credentials_exception
-
-    stmt = select(Usuario).where(Usuario.email == email)
-    result = await db.execute(stmt)
-    user = result.scalar_one_or_none()
-
-    if user is None or not user.ativo:
-        raise credentials_exception
-
-    return user
-
 
 @router.post("/register", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED)
 async def register_user(

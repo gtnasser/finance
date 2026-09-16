@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     # ----- Ambiente -----
     ENVIRONMENT: str = "development"  # development | production
 
+    # ----- CORS -----
+    CORS_ORIGINS: str = "http://localhost:8501"
+
     # ----- Segurança -----
     SECRET_KEY: str = "troque-por-uma-chave-segura-em-producao"
     ALGORITHM: str = "HS256"

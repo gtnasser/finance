@@ -1,74 +1,67 @@
-from logger import setup_logger, logger
-
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import select
 
-from database import init_db, AsyncSessionLocal
-from models import Usuario
-from security import get_password_hash
-from routers import auth, contas
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from loguru import logger
 
 from config import settings
-
-# Inicializa as configurações do Loguru
-setup_logger()
-
-# Parametriza usuario inicial
-ADMIN_INITIAL_USER="Administrador"
-ADMIN_INITIAL_EMAIL="admin@admin.com"
-ADMIN_INITIAL_PASSWORD="admin123"
+from database import engine, init_db, AsyncSessionLocal
+from exceptions import BusinessRuleError, ConflictError, NotFoundError
+from logger import setup_logger
+from routers import auth, conta_corrente, plano_contas
+from seed import seed_all
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Inicializa as tabelas do banco no startup
-    logger.info("Iniciando a API...")
-    await init_db()
+    # ----- Startup -----
+    setup_logger()
+    if not settings.is_production:
 
-    # Cria o usuário admin padrão caso não exista
-    async with AsyncSessionLocal() as session:
-        result = await session.execute(select(Usuario))
-        if not result.scalars().first():
-            user_admin = Usuario(
-                nome=settings.ADMIN_NAME,
-                email=settings.ADMIN_EMAIL,
-                senha_hash=get_password_hash(settings.ADMIN_PASSWORD)
+        # O Schema vem do Alembic (alembic upgrade head). 
+        # Os dados vem do seed.
+        async with AsyncSessionLocal() as session:
+            resultado = await seed_all(session)
+            logger.info(
+                f"Seed: admin_criado={resultado['admin_criado']}, "
+                f"plano_contas={resultado['plano_contas_criadas']}"
             )
-            session.add(user_admin)
-            await session.commit()
-            logger.info(f"👤 Usuário inicial criado: {settings.ADMIN_EMAIL}")
-        logger.info("Banco de dados verificado/inicializado.")
 
-    yield  # <--- A aplicação RODA enquanto fica pausada neste ponto
-    logger.info("Encerrando a API")
-    
+    yield
+    # ----- Shutdown -----
+    await engine.dispose()
 
-# Instância principal acessada pelo Uvicorn
 app = FastAPI(
-    title="Financing API",
-    version="1.0.0",
-    lifespan=lifespan
+    title="FINANCING API",
+    version="0.1.0",
+    lifespan=lifespan,
 )
 
-# Habilita CORS para o Streamlit
+# ----- CORS (permite o Streamlit consumir a API) -----
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Inclui os roteadores
+# ----- Handlers de exceções de domínio -----
+@app.exception_handler(NotFoundError)
+async def not_found_handler(_: Request, exc: NotFoundError):
+    return JSONResponse(status_code=404, content={"detail": str(exc)})
+
+@app.exception_handler(ConflictError)
+async def conflict_handler(_: Request, exc: ConflictError):
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+@app.exception_handler(BusinessRuleError)
+async def business_rule_handler(_: Request, exc: BusinessRuleError):
+    return JSONResponse(status_code=422, content={"detail": str(exc)})
+
+# ----- Routers -----
 app.include_router(auth.router)
-#app.include_router(contas.router)
-
-# rotas
-
-@app.get("/")
-async def root():
-    logger.debug("Endpoint raiz '/' foi acessado.")
-    return {"message": "Financing API is running"}
-
-
+app.include_router(plano_contas.router)
+app.include_router(conta_corrente.router)

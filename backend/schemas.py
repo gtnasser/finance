@@ -1,11 +1,21 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Literal, Optional
+from typing import Literal, Optional, Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 TipoConta = Literal["ATIVO", "PASSIVO", "PATRIMONIO_LIQUIDO", "RECEITA", "DESPESA"]
 Natureza = Literal["DEVEDORA", "CREDORA"]
+
+# ---------- Paginação genérica ----------
+
+T = TypeVar("T")
+
+class Page(BaseModel, Generic[T]):
+    items: list[T]
+    total: int
+    limit: int
+    offset: int
 
 # ---------- Autenticação ----------
 

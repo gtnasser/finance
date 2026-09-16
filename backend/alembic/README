@@ -1,0 +1,20 @@
+
+### Migrações (Alembic)
+
+As migrações são executadas a partir da pasta `backend/`:
+```bash
+cd backend
+pip install alembic
+alembic init alembic
+```
+
+> Após o `alembic init`, **substitua o `env.py` gerado pela versão assíncrona do projeto** (que lê a `DATABASE_URL` do `config.py`). Sem isso, o Alembic tentará conectar usando o driver errado.
+
+Gerar e aplicar uma migração:
+```bash
+# Após alterar models.py
+alembic revision --autogenerate -m "descricao"
+alembic upgrade head
+```
+
+> Em desenvolvimento, o `create_all` ainda é usado no bootstrap. Em produção, toda evolução do schema passa por migrações Alembic.
