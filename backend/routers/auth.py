@@ -8,9 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db_session
 from models import Usuario
 from schemas import Token, UsuarioCreate, UsuarioResponse
+from config import settings
+
 from security import (
-    ALGORITHM,
-    SECRET_KEY,
     create_access_token,
     get_password_hash,
     verify_password,
@@ -32,7 +32,7 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception

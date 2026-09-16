@@ -8,7 +8,9 @@ from sqlalchemy import select
 from database import init_db, AsyncSessionLocal
 from models import Usuario
 from security import get_password_hash
-from routers import auth
+from routers import auth, contas
+
+from config import settings
 
 # Inicializa as configurações do Loguru
 setup_logger()
@@ -29,13 +31,13 @@ async def lifespan(app: FastAPI):
         result = await session.execute(select(Usuario))
         if not result.scalars().first():
             user_admin = Usuario(
-                nome=ADMIN_INITIAL_USER,
-                email=ADMIN_INITIAL_EMAIL,
-                senha_hash=get_password_hash(ADMIN_INITIAL_PASSWORD)
+                nome=settings.ADMIN_NAME,
+                email=settings.ADMIN_EMAIL,
+                senha_hash=get_password_hash(settings.ADMIN_PASSWORD)
             )
             session.add(user_admin)
             await session.commit()
-            logger.info(f"👤 Usuário inicial criado: {ADMIN_INITIAL_USER}")
+            logger.info(f"👤 Usuário inicial criado: {settings.ADMIN_EMAIL}")
         logger.info("Banco de dados verificado/inicializado.")
 
     yield  # <--- A aplicação RODA enquanto fica pausada neste ponto
@@ -60,6 +62,7 @@ app.add_middleware(
 
 # Inclui os roteadores
 app.include_router(auth.router)
+#app.include_router(contas.router)
 
 # rotas
 

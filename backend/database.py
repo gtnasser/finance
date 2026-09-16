@@ -2,16 +2,24 @@ from collections.abc import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-# SQLite:
-DATABASE_URL = "sqlite+aiosqlite:///./contas_pagar.db"
-# PostgreSQL: "postgresql+asyncpg://usuario:senha@localhost:5432/nome_banco"
-# DATABASE_URL = "postgresql+asyncpg://usuario:senha@localhost:5432/nome_banco"
+from config import settings
+
+# Parâmetros de pool só fazem sentido para bancos remotos (Postgres)
+engine_kwargs: dict = {}
+if settings.is_production:
+    engine_kwargs.update(
+        pool_pre_ping=True,   # descarta conexões mortas antes de usar
+        pool_size=5,
+        max_overflow=10,
+    )
+
 
 engine = create_async_engine(
-    DATABASE_URL,
+    settings.DATABASE_URL,
     echo=False,  # Altere para True se quiser ver o SQL gerado no terminal
-    future=True
+    **engine_kwargs,
 )
+
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
@@ -30,6 +38,9 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 async def init_db() -> None:
-    """Cria todas as tabelas no banco de dados se não existirem."""
+    """
+    Bootstrap do schema. Uso exclusivo em desenvolvimento (produção usa Alembic).
+    Cria todas as tabelas no banco de dados se não existirem.
+    """
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
