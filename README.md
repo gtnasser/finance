@@ -27,7 +27,7 @@ Sistema de **Contas a Pagar / Gestão Financeira** - aplicação web que permite
 > Status honesto do que já existe no repositório.
 
 - ✅ **Frontend (parcial)**: telas de **Plano de Contas** e **Contas Correntes** implementadas (listagem paginada, formulários de criação/edição, exclusão com confirmação, botões de ação alinhados horizontalmente via `st.columns`); `api_client.py` com 8 métodos CRUD; navegação via `st.navigation` com proteção por token.
-- ✅ **Dashboard**: KPIs (total/ativas/inativas) + 3 visualizações em abas (barras nativas, pizza Plotly, cards coloridos).
+- ✅ **Dashboard**: 3 abas, visualizações por status, hierarquia, natureza e tipo.
 - ✅ **Backend (MVP)**: API FastAPI com autenticação JWT (register bloqueado em produção, rate limiting no login, 401 padronizado, logger sem diagnose), CRUD de plano de contas e contas correntes (repositories + services + routers), soft delete, envelope paginado, migrações Alembic, seed idempotente, CORS e 46 testes.
 - ✅ **Testes (46)**: regras de hierarquia (ciclo), vínculo plano ↔ conta corrente, segurança da autenticação, seed idempotente e CRUD via HTTP (incluindo o contrato de listagem paginada).
 - 🚧 **Em desenvolvimento**: tela de **Contas a Pagar** (placeholder ativo — aguarda o CRUD de títulos no backend).

@@ -1,5 +1,8 @@
 # ----- core -----
 
+# graficos
+plotly>=7.1.0
+
 # Logging e Manipulação de Dados
 loguru>=0.7.2
 
