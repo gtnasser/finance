@@ -1,36 +1,36 @@
 # views/plano_contas.py
 import streamlit as st
-from api_client import APIClient
+from api_client import APIClient, APIError
 
 api_client = APIClient()
 
-PAGE_SIZE = 50
+PAGE_SIZE = 200  # limite máximo aceito pelo backend (le=200)
 TIPOS = ["ATIVO", "PASSIVO", "RECEITA", "DESPESA"]
 NATUREZAS = ["DEVEDORA", "CREDORA"]
 
-def _mensagem_erro(resp: dict) -> str:
-    """Extrai a mensagem de erro do envelope (detail pode ser str ou lista)."""
-    detail = resp.get("detail", "Erro desconhecido")
-    if isinstance(detail, list):
-        return "; ".join(str(e.get("msg", e)) for e in detail)
-    return str(detail)
-
-def _carregar_plano(offset: int = 0) -> tuple:
-    """Busca uma página do plano de contas. Retorna (items, total)."""
+def _carregar_plano(offset: int = 0):
+    """Busca uma página do plano de contas. Retorna (items, total) ou None em erro."""
     try:
         dados = api_client.listar_plano_contas(limit=PAGE_SIZE, offset=offset)
         return dados.get("items", []), dados.get("total", 0)
+    except APIError as exc:
+        st.error(f"Falha na requisição ({exc.status_code}): {exc.detail}")
+        return None
     except Exception:
-        st.error("Servidor indisponível. Verifique se o backend está no ar.")
-        return [], 0
+        st.error("Servidor indisponível. Verifique a conexão com o backend.")
+        return None
 
-def _carregar_sinteticas() -> list:
+def _carregar_sinteticas():
     """Contas sintéticas (candidatas a 'conta superior'), para os selects."""
     try:
-        dados = api_client.listar_plano_contas(limit=1000, offset=0)
+        dados = api_client.listar_plano_contas(limit=PAGE_SIZE, offset=0)
         return [c for c in dados.get("items", []) if c.get("sintetica")]
+    except APIError as exc:
+        st.error(f"Falha na requisição ({exc.status_code}): {exc.detail}")
+        return None
     except Exception:
-        return []
+        st.error("Servidor indisponível. Verifique a conexão com o backend.")
+        return None
 
 def _ordenar_hierarquia(items: list) -> list:
     """Ordena por nível hierárquico numérico (1, 1.1, 1.1.1...)."""
@@ -49,6 +49,8 @@ def _mostrar_formulario(conta: dict | None = None) -> None:
     st.subheader(f"✏️ Editar conta: {conta['codigo']}" if conta else "➕ Nova conta")
 
     sinteticas = _carregar_sinteticas()
+    if sinteticas is None:
+        return  # erro já exibido
     if conta:
         # a própria conta não pode ser superior de si mesma
         sinteticas = [c for c in sinteticas if c["id"] != conta["id"]]
@@ -96,9 +98,11 @@ def _mostrar_formulario(conta: dict | None = None) -> None:
                 st.session_state.pop("pc_form_aberto", None)
                 st.rerun()
             else:
-                st.error(_mensagem_erro(resp))
+                st.error("Resposta inesperada do servidor.")
+        except APIError as exc:
+            st.error(f"Falha na requisição ({exc.status_code}): {exc.detail}")
         except Exception:
-            st.error("Erro ao salvar. Verifique os dados e tente novamente.")
+            st.error("Servidor indisponível. Verifique a conexão com o backend.")
 
     if st.button("Cancelar"):
         st.session_state.pop("pc_editar", None)
@@ -110,7 +114,7 @@ def _render_tabela(items: list) -> None:
         st.info("Nenhuma conta cadastrada. Use 'Nova conta' para começar.")
         return
 
-    widths = [1, 3.5, 1.2, 1.4, 1.2, 3.5, 1.1, 1.5]
+    widths = [1.2, 3.4, 1.3, 1.4, 1.6, 2.2, 1, 1.6]
     header = st.columns(widths)
     headers = ["Código", "Descrição", "Tipo", "Natureza", "Tipo de conta", "Conta superior", "Status", "Ações"]
     for col, label in zip(header, headers):
@@ -130,13 +134,18 @@ def _render_tabela(items: list) -> None:
 
         with col[7]:
             c_editar, c_excluir = st.columns(2)
-            if c_editar.button("✏️", key=f"pc_editar_{item['id']}", help="Editar", use_container_width=True, ):
+            if c_editar.button(
+                "✏️", key=f"pc_editar_{item['id']}", help="Editar",
+                use_container_width=True,
+            ):
                 st.session_state["pc_editar"] = item
                 st.rerun()
-            if c_excluir.button("🗑️", key=f"pc_excluir_{item['id']}", help="Excluir", use_container_width=True, ):
+            if c_excluir.button(
+                "🗑️", key=f"pc_excluir_{item['id']}", help="Excluir",
+                use_container_width=True,
+            ):
                 st.session_state["pc_excluir"] = item
                 st.rerun()
-                
 
 def _render_paginacao(total: int, offset: int) -> None:
     if total == 0:
@@ -166,11 +175,13 @@ def _render_confirmacao_exclusao() -> None:
             if ok:
                 st.success("Conta excluída.")
             else:
-                st.error("Não foi possível excluir. Verifique as regras: conta com filhos ou vinculada a conta corrente não pode ser excluída.")
-            st.session_state.pop("pc_excluir", None)
-            st.rerun()
+                st.error("Não foi possível excluir a conta.")
+        except APIError as exc:
+            st.error(f"Não foi possível excluir ({exc.status_code}): {exc.detail}")
         except Exception:
-            st.error("Erro ao excluir.")
+            st.error("Erro ao excluir. Servidor indisponível?")
+        st.session_state.pop("pc_excluir", None)
+        st.rerun()
     if c2.button("Cancelar"):
         st.session_state.pop("pc_excluir", None)
         st.rerun()
@@ -189,7 +200,10 @@ def render_plano_contas() -> None:
                 st.session_state["pc_form_aberto"] = True
                 st.rerun()
 
-        items, total = _carregar_plano(offset)
+        resultado = _carregar_plano(offset)
+        if resultado is None:
+            return  # erro já exibido
+        items, total = resultado
         items = _ordenar_hierarquia(items)
         _render_tabela(items)
         _render_paginacao(total, offset)

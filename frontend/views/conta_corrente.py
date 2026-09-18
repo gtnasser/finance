@@ -1,43 +1,49 @@
-# views/conta_corrente.py
+# views/contas_correntes.py
 from datetime import date
 
 import streamlit as st
-from api_client import APIClient
+from api_client import APIClient, APIError
 
 api_client = APIClient()
 
-PAGE_SIZE = 50
+PAGE_SIZE = 200  # limite máximo aceito pelo backend (le=200)
 TIPOS_CONTA = ["CORRENTE", "POUPANCA"]
 MOEDAS = ["BRL", "USD", "EUR"]
 
-def _mensagem_erro(resp: dict) -> str:
-    detail = resp.get("detail", "Erro desconhecido")
-    if isinstance(detail, list):
-        return "; ".join(str(e.get("msg", e)) for e in detail)
-    return str(detail)
-
-def _carregar_contas(offset: int = 0) -> tuple:
+def _carregar_contas(offset: int = 0):
+    """Busca uma página de contas correntes. Retorna (items, total) ou None em erro."""
     try:
         dados = api_client.listar_contas(limit=PAGE_SIZE, offset=offset)
         return dados.get("items", []), dados.get("total", 0)
+    except APIError as exc:
+        st.error(f"Falha na requisição ({exc.status_code}): {exc.detail}")
+        return None
     except Exception:
-        st.error("Servidor indisponível. Verifique se o backend está no ar.")
-        return [], 0
+        st.error("Servidor indisponível. Verifique a conexão com o backend.")
+        return None
 
-def _carregar_planos_analiticos() -> list:
+def _carregar_planos_analiticos():
     """Planos analíticos (únicos aceitos para vincular conta corrente)."""
     try:
-        dados = api_client.listar_plano_contas(limit=1000, offset=0)
+        dados = api_client.listar_plano_contas(limit=PAGE_SIZE, offset=0)
         return [c for c in dados.get("items", []) if not c.get("sintetica")]
+    except APIError as exc:
+        st.error(f"Falha na requisição ({exc.status_code}): {exc.detail}")
+        return None
     except Exception:
-        return []
+        st.error("Servidor indisponível. Verifique a conexão com o backend.")
+        return None
 
 def _mapa_planos() -> dict:
     """id -> 'codigo - descricao', para exibir na listagem e no select."""
     try:
-        dados = api_client.listar_plano_contas(limit=1000, offset=0)
+        dados = api_client.listar_plano_contas(limit=PAGE_SIZE, offset=0)
         return {c["id"]: f"{c['codigo']} - {c['descricao']}" for c in dados.get("items", [])}
+    except APIError as exc:
+        st.error(f"Falha na requisição ({exc.status_code}): {exc.detail}")
+        return {}
     except Exception:
+        st.error("Servidor indisponível. Verifique a conexão com o backend.")
         return {}
 
 def _formatar_saldo(valor) -> str:
@@ -50,6 +56,8 @@ def _mostrar_formulario(conta: dict | None = None) -> None:
     st.subheader(f"✏️ Editar conta: {conta['nome']}" if conta else "➕ Nova conta corrente")
 
     analiticos = _carregar_planos_analiticos()
+    if analiticos is None:
+        return  # erro já exibido
     if not analiticos:
         st.warning("Nenhum plano de contas analítico cadastrado. Crie uma conta analítica no Plano de Contas antes de vincular.")
         return
@@ -115,9 +123,11 @@ def _mostrar_formulario(conta: dict | None = None) -> None:
                 st.session_state.pop("cc_form_aberto", None)
                 st.rerun()
             else:
-                st.error(_mensagem_erro(resp))
+                st.error("Resposta inesperada do servidor.")
+        except APIError as exc:
+            st.error(f"Falha na requisição ({exc.status_code}): {exc.detail}")
         except Exception:
-            st.error("Erro ao salvar. Verifique os dados e tente novamente.")
+            st.error("Servidor indisponível. Verifique a conexão com o backend.")
 
     if st.button("Cancelar"):
         st.session_state.pop("cc_editar", None)
@@ -129,8 +139,9 @@ def _render_tabela(items: list, planos: dict) -> None:
         st.info("Nenhuma conta corrente cadastrada. Use 'Nova conta corrente' para começar.")
         return
 
+    # widths = [2.2, 1, 1.1, 1.4, 1.2, 0.9, 1.3, 2.4, 1, 1.6]
     widths = [2.2, 1, 1.1, 1.4, 1.2, 0.9, 1.3, 2.4, 1, 1.6]
-    header = st.columns(widths, wrap=False)
+    header = st.columns(widths)
     headers = ["Nome", "Banco", "Agência", "Número", "Tipo", "Moeda", "Saldo inicial", "Plano de contas", "Status", "Ações"]
     for col, label in zip(header, headers):
         col.markdown(f"**{label}**")
@@ -151,14 +162,20 @@ def _render_tabela(items: list, planos: dict) -> None:
         st.html(
             "<style>button{padding:0!important;background-color:red!important;}</style>"
         )
-#<button kind="secondary" data-testid="stBaseButton-secondary" aria-label="" class="st-emotion-cache-en1taq eqzt73c2"><div class="st-emotion-cache-ztlrr4 eqzt73c22"><span data-has-shortcut="false" class="st-emotion-cache-o0vne1 eqzt73c23"><span style="display: contents;"><div data-testid="stMarkdownContainer" class="st-emotion-cache-88blro ewutnf10"><p>🗑️</p></div></span></span></div></button>
-
+        # ajustar seletor apenas para os botoes dentro do relatorio
+        #<button kind="secondary" data-testid="stBaseButton-secondary" aria-label="" class="st-emotion-cache-en1taq eqzt73c2"><div class="st-emotion-cache-ztlrr4 eqzt73c22"><span data-has-shortcut="false" class="st-emotion-cache-o0vne1 eqzt73c23"><span style="display: contents;"><div data-testid="stMarkdownContainer" class="st-emotion-cache-88blro ewutnf10"><p>🗑️</p></div></span></span></div></button>
         with col[9]:
             c_editar, c_excluir = st.columns(2)
-            if c_editar.button("✏️", key=f"pc_editar_{item['id']}", help="Editar", use_container_width=True, ):
+            if c_editar.button(
+                "✏️", key=f"cc_editar_{item['id']}", help="Editar",
+                use_container_width=True,
+            ):
                 st.session_state["cc_editar"] = item
                 st.rerun()
-            if c_excluir.button("🗑️", key=f"pc_excluir_{item['id']}", help="Excluir", use_container_width=True, ):
+            if c_excluir.button(
+                "🗑️", key=f"cc_excluir_{item['id']}", help="Excluir",
+                use_container_width=True,
+            ):
                 st.session_state["cc_excluir"] = item
                 st.rerun()
 
@@ -190,16 +207,18 @@ def _render_confirmacao_exclusao() -> None:
             if ok:
                 st.success("Conta corrente excluída.")
             else:
-                st.error("Não foi possível excluir.")
-            st.session_state.pop("cc_excluir", None)
-            st.rerun()
+                st.error("Não foi possível excluir a conta corrente.")
+        except APIError as exc:
+            st.error(f"Não foi possível excluir ({exc.status_code}): {exc.detail}")
         except Exception:
-            st.error("Erro ao excluir.")
+            st.error("Erro ao excluir. Servidor indisponível?")
+        st.session_state.pop("cc_excluir", None)
+        st.rerun()
     if c2.button("Cancelar"):
         st.session_state.pop("cc_excluir", None)
         st.rerun()
 
-def render_conta_corrente() -> None:
+def render_contas_correntes() -> None:
     offset = st.session_state.get("cc_offset", 0)
 
     if st.session_state.get("cc_form_aberto") or st.session_state.get("cc_editar"):
@@ -213,7 +232,10 @@ def render_conta_corrente() -> None:
                 st.session_state["cc_form_aberto"] = True
                 st.rerun()
 
-        items, total = _carregar_contas(offset)
+        resultado = _carregar_contas(offset)
+        if resultado is None:
+            return  # erro já exibido
+        items, total = resultado
         planos = _mapa_planos()
         items = sorted(items, key=lambda c: (str(c.get("banco", "")), str(c.get("agencia", "")), str(c.get("numero", ""))))
         _render_tabela(items, planos)
@@ -221,4 +243,5 @@ def render_conta_corrente() -> None:
 
     _render_confirmacao_exclusao()
 
-render_conta_corrente()
+render_contas_correntes()
+
