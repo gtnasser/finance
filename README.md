@@ -27,7 +27,7 @@ Sistema de **Contas a Pagar / Gestão Financeira** - aplicação web que permite
 > Status honesto do que já existe no repositório.
 
 - ✅ **Frontend (parcial)**: telas de **Plano de Contas** e **Contas Correntes** implementadas (listagem paginada, formulários de criação/edição, exclusão com confirmação, botões de ação alinhados horizontalmente via `st.columns`); `api_client.py` com 8 métodos CRUD; navegação via `st.navigation` com proteção por token.
-- ✅ **Dashboard**: 3 abas, visualizações por status, hierarquia, natureza e tipo.
+- ✅ **Dashboard**: abas Plano de Contas / Contas Correntes / Base de Dados, visualizações por status, hierarquia, natureza e tipo.
 - ✅ **Backend (MVP)**: API FastAPI com autenticação JWT (register bloqueado em produção, rate limiting no login, 401 padronizado, logger sem diagnose), CRUD de plano de contas e contas correntes (repositories + services + routers), soft delete, envelope paginado, migrações Alembic, seed idempotente, CORS e 46 testes.
 - ✅ **Testes (46)**: regras de hierarquia (ciclo), vínculo plano ↔ conta corrente, segurança da autenticação, seed idempotente e CRUD via HTTP (incluindo o contrato de listagem paginada).
 - 🚧 **Em desenvolvimento**: tela de **Contas a Pagar** (placeholder ativo — aguarda o CRUD de títulos no backend).
@@ -122,46 +122,46 @@ O fluxo de erro é via exceções de domínio (`NotFoundError` → 404, `Conflic
 ```text
 financing/
 ├── backend/
-│   ├── main.py             # FastAPI: Criação do app, CORS, handlers de exceção, routers
-│   ├── config.py           # Configurações (ENVIRONMENT, DATABASE_URL, SECRET_KEY, pydantic-settings)
-│   ├── database.py         # Engine e sessão assíncrona
-│   ├── dependencies.py     # get_current_user (JWT → usuário)
-│   ├── exceptions.py       # Exceções de domínio (404/409/422)
-│   ├── models.py           # ORM: Usuario, PlanoContas, ContaCorrente (títulos e movimentações virão com o roadmap)
-│   ├── schemas.py          # Contratos Pydantic (Create/Update/Read)
-│   ├── seed.py             # Seed idempotente (admin + plano de contas)
-│   ├── logger.py           # Configuração de log
-│   ├── alembic.ini         # Configuração do Alembic (sqlalchemy.url vazio)
+│   ├── main.py               # FastAPI: Criação do app, CORS, handlers de exceção, routers
+│   ├── config.py             # Configurações (ENVIRONMENT, DATABASE_URL, SECRET_KEY, pydantic-settings)
+│   ├── database.py           # Engine e sessão assíncrona
+│   ├── dependencies.py       # get_current_user (JWT → usuário)
+│   ├── exceptions.py         # Exceções de domínio (404/409/422)
+│   ├── models.py             # ORM: Usuario, PlanoContas, ContaCorrente (títulos e movimentações virão com o roadmap)
+│   ├── schemas.py            # Contratos Pydantic (Create/Update/Read)
+│   ├── seed.py               # Seed idempotente (admin + plano de contas)
+│   ├── logger.py             # Configuração de log
+│   ├── alembic.ini           # Configuração do Alembic (sqlalchemy.url vazio)
 │   ├── alembic/
-│   │   ├── env.py          # Versão assíncrona (lê DATABASE_URL do config)
-│   │   └── versions/       # Migrações geradas
-│   ├── pytest.ini          # Configuração do pytest (pythonpath = .)
-│   ├── security.py         # JWT, hash de senha e política de senha
+│   │   ├── env.py            # Versão assíncrona (lê DATABASE_URL do config)
+│   │   └── versions/         # Migrações geradas
+│   ├── pytest.ini            # Configuração do pytest (pythonpath = .)
+│   ├── security.py           # JWT, hash de senha e política de senha
 │   ├── routers/
-│   │   ├── auth.py         # /auth/token, /auth/me, /auth/register
-│   │   ├── plano_contas.py # CRUD /api/v1/plano-contas
+│   │   ├── auth.py           # /auth/token, /auth/me, /auth/register
+│   │   ├── plano_contas.py   # CRUD /api/v1/plano-contas
 │   │   └── conta_corrente.py # CRUD /api/v1/contas
 │   ├── services/
 │   │   ├── plano_contas.py
 │   │   └── conta_corrente.py
 │   ├── repositories/
-│   │   ├── base.py         # Repositório genérico (soft delete automático)
+│   │   ├── base.py           # Repositório genérico (soft delete automático)
 │   │   ├── plano_contas.py
 │   │   └── conta_corrente.py
 │   ├── tests/
-│   │   ├── conftest.py     # Fixtures: session (SQLite em memória) + client HTTP
-│   │   └── test_*.py       # 46 testes
+│   │   ├── conftest.py       # Fixtures: session (SQLite em memória) + client HTTP
+│   │   └── test_*.py         # 46 testes
 │   └── logs/
 └── frontend/
-    ├── app.py              # Entrada Streamlit (st.navigation + proteção por token)
-    ├── api_client.py       # Cliente HTTPX: 8 métodos CRUD + auth + tratamento de 401
-    ├── logger.py           # Log do frontend
+    ├── app.py                # Entrada Streamlit (st.navigation + proteção por token)
+    ├── api_client.py         # Cliente HTTPX: 8 métodos CRUD + auth + tratamento de 401
+    ├── logger.py             # Log do frontend
     ├── views/
     │   ├── login.py
     │   ├── dashboard.py
-    │   ├── titulos.py      # Placeholder (aguarda backend de títulos)
-    │   ├── plano_contas.py # CRUD plano de contas (listagem paginada + formulário)
-    │   └── contas_correntes.py # CRUD contas correntes (listagem paginada + formulário)
+    │   ├── titulos.py        # Placeholder (aguarda backend de títulos)
+    │   ├── plano_contas.py   # CRUD plano de contas (listagem paginada + formulário)
+    │   └── conta_corrente.py # CRUD contas correntes (listagem paginada + formulário)
     └── logs/
 ```
 
